@@ -1,0 +1,6 @@
+.env
+.claude/settings.local.json
+frontend/node_modules/
+frontend/dist/
+backend/internal/ui/dist/*
+!backend/internal/ui/dist/.gitkeep

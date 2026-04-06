@@ -1,0 +1,44 @@
+:root {
+  --color-brown-900: #3b1f0a;
+  --color-brown-700: #6f4e37;
+  --color-brown-400: #a67c52;
+  --color-cream-100: #fdf6ec;
+  --color-cream-200: #f5e6d0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP",
+    sans-serif;
+  background: var(--color-cream-100);
+  color: var(--color-brown-900);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+}
