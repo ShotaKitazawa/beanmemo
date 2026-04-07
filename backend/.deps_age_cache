@@ -739,5 +739,13 @@
   "google.golang.org/genproto/googleapis/rpc@v0.0.0-20260401001100-f93e5f3e9f0f": "2026-04-01T00:11:00+00:00",
   "google.golang.org/genproto/googleapis/rpc@v0.0.0-20260319201613-d00831a3d3e7": "2026-03-19T20:16:13+00:00",
   "google.golang.org/genproto/googleapis/api@v0.0.0-20260319201613-d00831a3d3e7": "2026-03-19T20:16:13+00:00",
-  "github.com/sqlc-dev/sqlc@v1.30.0": "2025-09-01T23:09:52Z"
+  "github.com/sqlc-dev/sqlc@v1.30.0": "2025-09-01T23:09:52Z",
+  "github.com/lestrrat-go/httprc@v1.0.6": "2024-07-12T21:08:33Z",
+  "github.com/decred/dcrd/dcrec/secp256k1/v4@v4.4.0": "2025-02-20T17:33:47Z",
+  "github.com/lestrrat-go/httpcc@v1.0.1": "2022-03-29T04:21:01Z",
+  "github.com/lestrrat-go/iter@v1.0.2": "2022-03-29T05:42:43Z",
+  "github.com/goccy/go-json@v0.10.3": "2024-05-09T10:56:55Z",
+  "github.com/lestrrat-go/jwx/v2@v2.1.6": "2025-04-29T08:17:11Z",
+  "github.com/lestrrat-go/blackmagic@v1.0.4": "2025-06-09T05:38:50Z",
+  "github.com/lestrrat-go/option@v1.0.1": "2022-12-15T23:46:30Z"
 }

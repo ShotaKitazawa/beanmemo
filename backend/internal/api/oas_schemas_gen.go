@@ -8,6 +8,31 @@ import (
 	"github.com/go-faster/errors"
 )
 
+type BearerAuth struct {
+	Token string
+	Roles []string
+}
+
+// GetToken returns the value of Token.
+func (s *BearerAuth) GetToken() string {
+	return s.Token
+}
+
+// GetRoles returns the value of Roles.
+func (s *BearerAuth) GetRoles() []string {
+	return s.Roles
+}
+
+// SetToken sets the value of Token.
+func (s *BearerAuth) SetToken(val string) {
+	s.Token = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *BearerAuth) SetRoles(val []string) {
+	s.Roles = val
+}
+
 type CreateRecordBadRequest Error
 
 func (*CreateRecordBadRequest) createRecordRes() {}
@@ -233,6 +258,10 @@ func (s *CreateRecordRequestRoastLevel) UnmarshalText(data []byte) error {
 	}
 }
 
+type CreateRecordUnauthorized Error
+
+func (*CreateRecordUnauthorized) createRecordRes() {}
+
 type DeleteRecordInternalServerError Error
 
 func (*DeleteRecordInternalServerError) deleteRecordRes() {}
@@ -245,6 +274,10 @@ func (*DeleteRecordNoContent) deleteRecordRes() {}
 type DeleteRecordNotFound Error
 
 func (*DeleteRecordNotFound) deleteRecordRes() {}
+
+type DeleteRecordUnauthorized Error
+
+func (*DeleteRecordUnauthorized) deleteRecordRes() {}
 
 // Ref: #/components/schemas/Error
 type Error struct {
@@ -260,11 +293,6 @@ func (s *Error) GetMessage() string {
 func (s *Error) SetMessage(val string) {
 	s.Message = val
 }
-
-func (*Error) getRecommendRes()        {}
-func (*Error) getStatsFlavorWordsRes() {}
-func (*Error) getStatsSummaryRes()     {}
-func (*Error) listRecordsRes()         {}
 
 // Ref: #/components/schemas/FlavorWord
 type FlavorWord struct {
@@ -292,6 +320,14 @@ func (s *FlavorWord) SetCount(val int) {
 	s.Count = val
 }
 
+type GetRecommendInternalServerError Error
+
+func (*GetRecommendInternalServerError) getRecommendRes() {}
+
+type GetRecommendUnauthorized Error
+
+func (*GetRecommendUnauthorized) getRecommendRes() {}
+
 type GetRecordInternalServerError Error
 
 func (*GetRecordInternalServerError) getRecordRes() {}
@@ -300,9 +336,29 @@ type GetRecordNotFound Error
 
 func (*GetRecordNotFound) getRecordRes() {}
 
+type GetRecordUnauthorized Error
+
+func (*GetRecordUnauthorized) getRecordRes() {}
+
+type GetStatsFlavorWordsInternalServerError Error
+
+func (*GetStatsFlavorWordsInternalServerError) getStatsFlavorWordsRes() {}
+
 type GetStatsFlavorWordsOKApplicationJSON []FlavorWord
 
 func (*GetStatsFlavorWordsOKApplicationJSON) getStatsFlavorWordsRes() {}
+
+type GetStatsFlavorWordsUnauthorized Error
+
+func (*GetStatsFlavorWordsUnauthorized) getStatsFlavorWordsRes() {}
+
+type GetStatsSummaryInternalServerError Error
+
+func (*GetStatsSummaryInternalServerError) getStatsSummaryRes() {}
+
+type GetStatsSummaryUnauthorized Error
+
+func (*GetStatsSummaryUnauthorized) getStatsSummaryRes() {}
 
 // Ref: #/components/schemas/GroupStat
 type GroupStat struct {
@@ -396,6 +452,10 @@ func (s *ListRecordsBrewMethod) UnmarshalText(data []byte) error {
 	}
 }
 
+type ListRecordsInternalServerError Error
+
+func (*ListRecordsInternalServerError) listRecordsRes() {}
+
 type ListRecordsOKApplicationJSON []Record
 
 func (*ListRecordsOKApplicationJSON) listRecordsRes() {}
@@ -447,6 +507,10 @@ func (s *ListRecordsRoastLevel) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type ListRecordsUnauthorized Error
+
+func (*ListRecordsUnauthorized) listRecordsRes() {}
 
 // NewOptInt returns new OptInt with value set to v.
 func NewOptInt(v int) OptInt {
@@ -2280,3 +2344,7 @@ func (s *UpdateRecordRequestRoastLevel) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type UpdateRecordUnauthorized Error
+
+func (*UpdateRecordUnauthorized) updateRecordRes() {}

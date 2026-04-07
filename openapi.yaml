@@ -7,6 +7,9 @@ info:
 servers:
   - url: /api
 
+security:
+  - bearerAuth: []
+
 paths:
   /records:
     get:
@@ -42,6 +45,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Record"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           description: Internal server error
           content:
@@ -66,6 +75,12 @@ paths:
                 $ref: "#/components/schemas/Record"
         "400":
           description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -95,6 +110,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RecordDetail"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "404":
           description: Not found
           content:
@@ -136,6 +157,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "404":
           description: Not found
           content:
@@ -161,6 +188,12 @@ paths:
       responses:
         "204":
           description: Deleted
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "404":
           description: Not found
           content:
@@ -185,6 +218,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StatsSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           description: Internal server error
           content:
@@ -205,6 +244,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/FlavorWord"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           description: Internal server error
           content:
@@ -232,6 +277,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RecommendResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           description: Internal server error
           content:
@@ -240,6 +291,12 @@ paths:
                 $ref: "#/components/schemas/Error"
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     Record:
       type: object

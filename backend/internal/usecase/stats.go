@@ -36,21 +36,21 @@ func NewStatsUsecase(statsRepo statsRepository, recordRepo statsRecordRepository
 	return &StatsUsecase{statsRepo: statsRepo, recordRepo: recordRepo}
 }
 
-func (u *StatsUsecase) Summary(ctx context.Context) (*api.StatsSummary, error) {
-	total, err := u.recordRepo.Count(ctx, defaultUserID)
+func (u *StatsUsecase) Summary(ctx context.Context, userID int64) (*api.StatsSummary, error) {
+	total, err := u.recordRepo.Count(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	origins, err := u.statsRepo.StatsByOrigin(ctx, defaultUserID)
+	origins, err := u.statsRepo.StatsByOrigin(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	roasts, err := u.statsRepo.StatsByRoastLevel(ctx, defaultUserID)
+	roasts, err := u.statsRepo.StatsByRoastLevel(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	brews, err := u.statsRepo.StatsByBrewMethod(ctx, defaultUserID)
+	brews, err := u.statsRepo.StatsByBrewMethod(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +103,8 @@ func (u *StatsUsecase) Summary(ctx context.Context) (*api.StatsSummary, error) {
 	return summary, nil
 }
 
-func (u *StatsUsecase) FlavorWords(ctx context.Context) ([]api.FlavorWord, error) {
-	notes, err := u.recordRepo.ListAllTastingNotes(ctx, defaultUserID)
+func (u *StatsUsecase) FlavorWords(ctx context.Context, userID int64) ([]api.FlavorWord, error) {
+	notes, err := u.recordRepo.ListAllTastingNotes(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +148,8 @@ func (u *StatsUsecase) FlavorWords(ctx context.Context) ([]api.FlavorWord, error
 	return result, nil
 }
 
-func (u *StatsUsecase) Recommend(ctx context.Context, params api.GetRecommendParams) (*api.RecommendResult, error) {
-	total, err := u.recordRepo.Count(ctx, defaultUserID)
+func (u *StatsUsecase) Recommend(ctx context.Context, userID int64, params api.GetRecommendParams) (*api.RecommendResult, error) {
+	total, err := u.recordRepo.Count(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func (u *StatsUsecase) Recommend(ctx context.Context, params api.GetRecommendPar
 
 	var scores []float32
 	if params.Origin.Set && params.Origin.Value != "" {
-		avg, err := u.statsRepo.AvgRatingByOrigin(ctx, defaultUserID, params.Origin.Value)
+		avg, err := u.statsRepo.AvgRatingByOrigin(ctx, userID, params.Origin.Value)
 		if err == nil && avg != nil {
 			v := toFloat32(avg)
 			result.OriginAvg = api.OptNilFloat32{Set: true, Value: v}
@@ -181,7 +181,7 @@ func (u *StatsUsecase) Recommend(ctx context.Context, params api.GetRecommendPar
 		}
 	}
 	if params.Name.Set && params.Name.Value != "" {
-		avg, err := u.statsRepo.AvgRatingByName(ctx, defaultUserID, params.Name.Value)
+		avg, err := u.statsRepo.AvgRatingByName(ctx, userID, params.Name.Value)
 		if err == nil && avg != nil {
 			v := toFloat32(avg)
 			result.NameMatchAvg = api.OptNilFloat32{Set: true, Value: v}

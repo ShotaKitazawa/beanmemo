@@ -10,8 +10,6 @@ import (
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/database/sqlcgen"
 )
 
-const defaultUserID int64 = 1
-
 type recordRepository interface {
 	ListAll(ctx context.Context, userID int64) ([]sqlcgen.Record, error)
 	ListByOrigin(ctx context.Context, userID int64, origin string) ([]sqlcgen.Record, error)
@@ -33,37 +31,36 @@ func NewRecordUsecase(repo recordRepository) *RecordUsecase {
 	return &RecordUsecase{repo: repo}
 }
 
-func (u *RecordUsecase) List(ctx context.Context, params api.ListRecordsParams) ([]sqlcgen.Record, error) {
-	// Use the most specific filter if available, then post-filter
+func (u *RecordUsecase) List(ctx context.Context, userID int64, params api.ListRecordsParams) ([]sqlcgen.Record, error) {
 	if params.Origin.Set {
-		records, err := u.repo.ListByOrigin(ctx, defaultUserID, params.Origin.Value)
+		records, err := u.repo.ListByOrigin(ctx, userID, params.Origin.Value)
 		if err != nil {
 			return nil, err
 		}
 		return filterRecords(records, params), nil
 	}
 	if params.RoastLevel.Set {
-		records, err := u.repo.ListByRoastLevel(ctx, defaultUserID, string(params.RoastLevel.Value))
+		records, err := u.repo.ListByRoastLevel(ctx, userID, string(params.RoastLevel.Value))
 		if err != nil {
 			return nil, err
 		}
 		return filterRecords(records, params), nil
 	}
 	if params.RatingMin.Set {
-		records, err := u.repo.ListByRatingMin(ctx, defaultUserID, int8(params.RatingMin.Value))
+		records, err := u.repo.ListByRatingMin(ctx, userID, int8(params.RatingMin.Value))
 		if err != nil {
 			return nil, err
 		}
 		return filterRecords(records, params), nil
 	}
 	if params.BrewMethod.Set {
-		records, err := u.repo.ListByBrewMethod(ctx, defaultUserID, string(params.BrewMethod.Value))
+		records, err := u.repo.ListByBrewMethod(ctx, userID, string(params.BrewMethod.Value))
 		if err != nil {
 			return nil, err
 		}
 		return filterRecords(records, params), nil
 	}
-	return u.repo.ListAll(ctx, defaultUserID)
+	return u.repo.ListAll(ctx, userID)
 }
 
 func filterRecords(records []sqlcgen.Record, params api.ListRecordsParams) []sqlcgen.Record {
@@ -86,26 +83,26 @@ func filterRecords(records []sqlcgen.Record, params api.ListRecordsParams) []sql
 	return out
 }
 
-func (u *RecordUsecase) Get(ctx context.Context, id int64) (sqlcgen.Record, []sqlcgen.Record, error) {
-	record, err := u.repo.Get(ctx, id, defaultUserID)
+func (u *RecordUsecase) Get(ctx context.Context, userID, id int64) (sqlcgen.Record, []sqlcgen.Record, error) {
+	record, err := u.repo.Get(ctx, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return sqlcgen.Record{}, nil, ErrNotFound
 		}
 		return sqlcgen.Record{}, nil, err
 	}
-	related, err := u.repo.GetRelated(ctx, defaultUserID, id, record.Name)
+	related, err := u.repo.GetRelated(ctx, userID, id, record.Name)
 	if err != nil {
 		return sqlcgen.Record{}, nil, err
 	}
 	return record, related, nil
 }
 
-func (u *RecordUsecase) Create(ctx context.Context, req *api.CreateRecordRequest) (sqlcgen.Record, error) {
+func (u *RecordUsecase) Create(ctx context.Context, userID int64, req *api.CreateRecordRequest) (sqlcgen.Record, error) {
 	isNoteFilled := req.TastingNote.IsSet() && !req.TastingNote.Null && req.TastingNote.Value != ""
 
 	params := sqlcgen.CreateRecordParams{
-		UserID:       defaultUserID,
+		UserID:       userID,
 		Name:         req.Name,
 		Rating:       int8(req.Rating.Or(0)),
 		IsNoteFilled: isNoteFilled,
@@ -139,11 +136,11 @@ func (u *RecordUsecase) Create(ctx context.Context, req *api.CreateRecordRequest
 	if err != nil {
 		return sqlcgen.Record{}, err
 	}
-	return u.repo.Get(ctx, id, defaultUserID)
+	return u.repo.Get(ctx, id, userID)
 }
 
-func (u *RecordUsecase) Update(ctx context.Context, id int64, req *api.UpdateRecordRequest) (sqlcgen.Record, error) {
-	existing, err := u.repo.Get(ctx, id, defaultUserID)
+func (u *RecordUsecase) Update(ctx context.Context, userID, id int64, req *api.UpdateRecordRequest) (sqlcgen.Record, error) {
+	existing, err := u.repo.Get(ctx, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return sqlcgen.Record{}, ErrNotFound
@@ -151,14 +148,12 @@ func (u *RecordUsecase) Update(ctx context.Context, id int64, req *api.UpdateRec
 		return sqlcgen.Record{}, err
 	}
 
-	// Merge updates with existing
 	updated := applyUpdate(existing, req)
-	// Determine is_note_filled
 	updated.IsNoteFilled = updated.TastingNote.Valid && updated.TastingNote.String != ""
 
 	if err := u.repo.Update(ctx, sqlcgen.UpdateRecordParams{
 		ID:           id,
-		UserID:       defaultUserID,
+		UserID:       userID,
 		Name:         updated.Name,
 		Rating:       updated.Rating,
 		Origin:       updated.Origin,
@@ -173,7 +168,7 @@ func (u *RecordUsecase) Update(ctx context.Context, id int64, req *api.UpdateRec
 	}); err != nil {
 		return sqlcgen.Record{}, err
 	}
-	return u.repo.Get(ctx, id, defaultUserID)
+	return u.repo.Get(ctx, id, userID)
 }
 
 func applyUpdate(existing sqlcgen.Record, req *api.UpdateRecordRequest) sqlcgen.Record {
@@ -244,13 +239,13 @@ func applyUpdate(existing sqlcgen.Record, req *api.UpdateRecordRequest) sqlcgen.
 	return r
 }
 
-func (u *RecordUsecase) Delete(ctx context.Context, id int64) error {
-	_, err := u.repo.Get(ctx, id, defaultUserID)
+func (u *RecordUsecase) Delete(ctx context.Context, userID, id int64) error {
+	_, err := u.repo.Get(ctx, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
 		}
 		return err
 	}
-	return u.repo.Delete(ctx, id, defaultUserID)
+	return u.repo.Delete(ctx, id, userID)
 }

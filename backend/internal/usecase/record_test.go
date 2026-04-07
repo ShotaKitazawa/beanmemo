@@ -11,6 +11,8 @@ import (
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/database/sqlcgen"
 )
 
+const testUserID int64 = 10
+
 // --- mock ---
 
 type stubRecordRepo struct {
@@ -101,7 +103,7 @@ func (s *stubRecordRepo) Delete(ctx context.Context, id, userID int64) error {
 func makeRecord(id int64, name string, rating int8) sqlcgen.Record {
 	return sqlcgen.Record{
 		ID:        id,
-		UserID:    defaultUserID,
+		UserID:    testUserID,
 		Name:      name,
 		Rating:    rating,
 		CreatedAt: time.Now(),
@@ -265,14 +267,14 @@ func TestRecordUsecaseList_NoFilter(t *testing.T) {
 	records := []sqlcgen.Record{makeRecord(1, "A", 3), makeRecord(2, "B", 4)}
 	repo := &stubRecordRepo{
 		listAllFn: func(_ context.Context, userID int64) ([]sqlcgen.Record, error) {
-			if userID != defaultUserID {
+			if userID != testUserID {
 				t.Errorf("unexpected userID %d", userID)
 			}
 			return records, nil
 		},
 	}
 	uc := NewRecordUsecase(repo)
-	got, err := uc.List(context.Background(), api.ListRecordsParams{})
+	got, err := uc.List(context.Background(), testUserID, api.ListRecordsParams{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -294,7 +296,7 @@ func TestRecordUsecaseList_ByOrigin(t *testing.T) {
 	}
 	uc := NewRecordUsecase(repo)
 	params := api.ListRecordsParams{Origin: api.OptString{Set: true, Value: "Ethiopia"}}
-	got, err := uc.List(context.Background(), params)
+	got, err := uc.List(context.Background(), testUserID, params)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -315,7 +317,7 @@ func TestRecordUsecaseList_ByRatingMin(t *testing.T) {
 	}
 	uc := NewRecordUsecase(repo)
 	params := api.ListRecordsParams{RatingMin: api.OptInt{Set: true, Value: 4}}
-	got, err := uc.List(context.Background(), params)
+	got, err := uc.List(context.Background(), testUserID, params)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -341,7 +343,7 @@ func TestRecordUsecaseGet_Found(t *testing.T) {
 		},
 	}
 	uc := NewRecordUsecase(repo)
-	got, gotRelated, err := uc.Get(context.Background(), 42)
+	got, gotRelated, err := uc.Get(context.Background(), testUserID, 42)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -360,7 +362,7 @@ func TestRecordUsecaseGet_NotFound(t *testing.T) {
 		},
 	}
 	uc := NewRecordUsecase(repo)
-	_, _, err := uc.Get(context.Background(), 99)
+	_, _, err := uc.Get(context.Background(), testUserID, 99)
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
@@ -399,7 +401,7 @@ func TestRecordUsecaseCreate(t *testing.T) {
 		Rating:      api.OptInt{Set: true, Value: 4},
 		TastingNote: api.OptNilString{Set: true, Value: "bright"},
 	}
-	got, err := uc.Create(context.Background(), req)
+	got, err := uc.Create(context.Background(), testUserID, req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -418,9 +420,6 @@ func TestRecordUsecaseUpdate_Found(t *testing.T) {
 	updated := makeRecord(1, "New Name", 3)
 
 	repo := &stubRecordRepo{
-		getFn: func(_ context.Context, _, _ int64) (sqlcgen.Record, error) {
-			return existing, nil
-		},
 		updateFn: func(_ context.Context, p sqlcgen.UpdateRecordParams) error {
 			if p.Name != "New Name" {
 				t.Errorf("expected Name 'New Name', got %q", p.Name)
@@ -428,7 +427,6 @@ func TestRecordUsecaseUpdate_Found(t *testing.T) {
 			return nil
 		},
 	}
-	// Second Get call (after update) returns the updated record
 	callCount := 0
 	repo.getFn = func(_ context.Context, _, _ int64) (sqlcgen.Record, error) {
 		callCount++
@@ -442,7 +440,7 @@ func TestRecordUsecaseUpdate_Found(t *testing.T) {
 	req := &api.UpdateRecordRequest{
 		Name: api.OptString{Set: true, Value: "New Name"},
 	}
-	got, err := uc.Update(context.Background(), 1, req)
+	got, err := uc.Update(context.Background(), testUserID, 1, req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -458,7 +456,7 @@ func TestRecordUsecaseUpdate_NotFound(t *testing.T) {
 		},
 	}
 	uc := NewRecordUsecase(repo)
-	_, err := uc.Update(context.Background(), 99, &api.UpdateRecordRequest{})
+	_, err := uc.Update(context.Background(), testUserID, 99, &api.UpdateRecordRequest{})
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
@@ -473,7 +471,7 @@ func TestRecordUsecaseDelete_Found(t *testing.T) {
 			return makeRecord(1, "Coffee", 3), nil
 		},
 		deleteFn: func(_ context.Context, id, userID int64) error {
-			if id != 1 || userID != defaultUserID {
+			if id != 1 || userID != testUserID {
 				t.Errorf("unexpected delete args id=%d userID=%d", id, userID)
 			}
 			deleted = true
@@ -481,7 +479,7 @@ func TestRecordUsecaseDelete_Found(t *testing.T) {
 		},
 	}
 	uc := NewRecordUsecase(repo)
-	if err := uc.Delete(context.Background(), 1); err != nil {
+	if err := uc.Delete(context.Background(), testUserID, 1); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !deleted {
@@ -496,7 +494,7 @@ func TestRecordUsecaseDelete_NotFound(t *testing.T) {
 		},
 	}
 	uc := NewRecordUsecase(repo)
-	err := uc.Delete(context.Background(), 99)
+	err := uc.Delete(context.Background(), testUserID, 99)
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}

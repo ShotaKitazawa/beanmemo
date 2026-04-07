@@ -178,7 +178,7 @@ func TestStatsUsecaseSummary_Basic(t *testing.T) {
 		},
 	}
 	uc := NewStatsUsecase(statsRepo, recordRepo)
-	summary, err := uc.Summary(context.Background())
+	summary, err := uc.Summary(context.Background(), testUserID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestStatsUsecaseSummary_NullLabelsSkipped(t *testing.T) {
 		countFn: func(_ context.Context, _ int64) (int64, error) { return 3, nil },
 	}
 	uc := NewStatsUsecase(statsRepo, recordRepo)
-	summary, err := uc.Summary(context.Background())
+	summary, err := uc.Summary(context.Background(), testUserID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -236,15 +236,13 @@ func TestStatsUsecaseFlavorWords_Basic(t *testing.T) {
 		},
 	}
 	uc := NewStatsUsecase(&stubStatsRepo{}, recordRepo)
-	words, err := uc.FlavorWords(context.Background())
+	words, err := uc.FlavorWords(context.Background(), testUserID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// "fruity" appears 2 times, "bright" appears 2 times, "citrus" appears 1 time
 	if len(words) == 0 {
 		t.Fatal("expected flavor words, got none")
 	}
-	// Top words should be "fruity" and "bright" (count=2), "citrus" (count=1)
 	found := map[string]int{}
 	for _, w := range words {
 		found[w.Word] = w.Count
@@ -269,7 +267,7 @@ func TestStatsUsecaseFlavorWords_ShortWordsExcluded(t *testing.T) {
 		},
 	}
 	uc := NewStatsUsecase(&stubStatsRepo{}, recordRepo)
-	words, err := uc.FlavorWords(context.Background())
+	words, err := uc.FlavorWords(context.Background(), testUserID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -282,9 +280,8 @@ func TestStatsUsecaseFlavorWords_ShortWordsExcluded(t *testing.T) {
 
 func TestStatsUsecaseFlavorWords_MaxTwenty(t *testing.T) {
 	notes := make([]sql.NullString, 0)
-	// create 30 unique words each appearing once
 	for i := 0; i < 30; i++ {
-		word := string(rune('a'+i/26)) + string(rune('a'+i%26)) // aa, ab, ..., az, ba, ...
+		word := string(rune('a'+i/26)) + string(rune('a'+i%26))
 		notes = append(notes, sql.NullString{String: word, Valid: true})
 	}
 	recordRepo := &stubStatsRecordRepo{
@@ -293,7 +290,7 @@ func TestStatsUsecaseFlavorWords_MaxTwenty(t *testing.T) {
 		},
 	}
 	uc := NewStatsUsecase(&stubStatsRepo{}, recordRepo)
-	words, err := uc.FlavorWords(context.Background())
+	words, err := uc.FlavorWords(context.Background(), testUserID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -309,7 +306,7 @@ func TestStatsUsecaseRecommend_Locked(t *testing.T) {
 		countFn: func(_ context.Context, _ int64) (int64, error) { return 3, nil },
 	}
 	uc := NewStatsUsecase(&stubStatsRepo{}, recordRepo)
-	result, err := uc.Recommend(context.Background(), api.GetRecommendParams{})
+	result, err := uc.Recommend(context.Background(), testUserID, api.GetRecommendParams{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -340,7 +337,7 @@ func TestStatsUsecaseRecommend_UnlockedWithOrigin(t *testing.T) {
 	params := api.GetRecommendParams{
 		Origin: api.OptString{Set: true, Value: "Ethiopia"},
 	}
-	result, err := uc.Recommend(context.Background(), params)
+	result, err := uc.Recommend(context.Background(), testUserID, params)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -363,14 +360,13 @@ func TestStatsUsecaseRecommend_UnlockedNoParams(t *testing.T) {
 		countFn: func(_ context.Context, _ int64) (int64, error) { return 10, nil },
 	}
 	uc := NewStatsUsecase(&stubStatsRepo{}, recordRepo)
-	result, err := uc.Recommend(context.Background(), api.GetRecommendParams{})
+	result, err := uc.Recommend(context.Background(), testUserID, api.GetRecommendParams{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if result.Locked {
 		t.Error("expected Locked=false")
 	}
-	// No scores → Score should be null
 	if !result.Score.Set || !result.Score.Null {
 		t.Errorf("expected Score to be null when no params, got %v", result.Score)
 	}

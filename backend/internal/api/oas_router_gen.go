@@ -11,11 +11,23 @@ import (
 )
 
 var (
+	rn5AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
 	rn1AllowedHeaders = map[string]string{
-		"POST": "Content-Type",
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
 	}
 	rn3AllowedHeaders = map[string]string{
-		"PUT": "Content-Type",
+		"DELETE": "Authorization",
+		"GET":    "Authorization",
+		"PUT":    "Authorization,Content-Type",
+	}
+	rn7AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn9AllowedHeaders = map[string]string{
+		"GET": "Authorization",
 	}
 )
 
@@ -98,7 +110,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: nil,
+								allowedHeaders: rn5AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -209,7 +221,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: nil,
+								allowedHeaders: rn7AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -234,7 +246,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: nil,
+								allowedHeaders: rn9AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})

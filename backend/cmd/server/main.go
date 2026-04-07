@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/api"
+	"github.com/ShotaKitazawa/beanmemo/backend/internal/auth"
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/config"
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/database"
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/handler"
@@ -32,27 +33,41 @@ func run() error {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Ensure default user exists (Phase 1: single user)
-	if err := ensureDefaultUser(db); err != nil {
-		return fmt.Errorf("failed to seed default user: %w", err)
-	}
-
+	userRepo := repository.NewUserRepository(db)
 	recordRepo := repository.NewRecordRepository(db)
 	statsRepo := repository.NewStatsRepository(db)
+
+	// DISABLE_OIDC=true のときは dummy user (ID=1) を確保してスキップ
+	var verifier *auth.JWTVerifier
+	if cfg.DisableOIDC {
+		if err := ensureDefaultUser(db); err != nil {
+			return fmt.Errorf("seed default user: %w", err)
+		}
+	} else {
+		if cfg.OIDCIssuerURL == "" {
+			return fmt.Errorf("OIDC_ISSUER_URL is required when DISABLE_OIDC is not set")
+		}
+		verifier, err = auth.NewJWTVerifier(context.Background(), cfg.OIDCIssuerURL, cfg.AuthzClaimKey, cfg.AuthzClaimValue)
+		if err != nil {
+			return fmt.Errorf("init JWT verifier: %w", err)
+		}
+	}
+
+	secHandler := handler.NewSecurityHandler(verifier, userRepo, cfg.DisableOIDC)
 
 	recordUC := usecase.NewRecordUsecase(recordRepo)
 	statsUC := usecase.NewStatsUsecase(statsRepo, recordRepo)
 
 	h := handler.New(recordUC, statsUC)
 
-	srv, err := api.NewServer(h)
+	srv, err := api.NewServer(h, secHandler)
 	if err != nil {
-		return fmt.Errorf("failed to create server: %w", err)
+		return fmt.Errorf("create server: %w", err)
 	}
 
 	staticFS, err := fs.Sub(ui.Static, "dist")
 	if err != nil {
-		return fmt.Errorf("failed to create static fs: %w", err)
+		return fmt.Errorf("create static fs: %w", err)
 	}
 
 	mux := http.NewServeMux()
@@ -60,7 +75,7 @@ func run() error {
 	mux.Handle("/", spaHandler(http.FS(staticFS)))
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
-	log.Printf("beanmemo backend starting on %s", addr)
+	log.Printf("beanmemo backend starting on %s (disableOIDC=%v)", addr, cfg.DisableOIDC)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		return fmt.Errorf("server error: %w", err)
 	}

@@ -7,6 +7,7 @@ package sqlcgen
 
 import (
 	"context"
+	"database/sql"
 )
 
 const ensureDefaultUser = `-- name: EnsureDefaultUser :exec
@@ -20,7 +21,7 @@ func (q *Queries) EnsureDefaultUser(ctx context.Context) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, email, password_hash, created_at FROM users WHERE id = ? LIMIT 1
+SELECT id, sub, name, email, password_hash, created_at FROM users WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
@@ -28,10 +29,45 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 	var i User
 	err := row.Scan(
 		&i.ID,
+		&i.Sub,
 		&i.Name,
 		&i.Email,
 		&i.PasswordHash,
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getUserBySub = `-- name: GetUserBySub :one
+SELECT id, sub, name, email, password_hash, created_at FROM users WHERE sub = ? LIMIT 1
+`
+
+func (q *Queries) GetUserBySub(ctx context.Context, sub sql.NullString) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserBySub, sub)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Sub,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const upsertUserBySub = `-- name: UpsertUserBySub :exec
+INSERT INTO users (sub, name, email, password_hash)
+VALUES (?, ?, '', 'n/a')
+ON DUPLICATE KEY UPDATE name = VALUES(name)
+`
+
+type UpsertUserBySubParams struct {
+	Sub  sql.NullString `json:"sub"`
+	Name string         `json:"name"`
+}
+
+func (q *Queries) UpsertUserBySub(ctx context.Context, arg UpsertUserBySubParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserBySub, arg.Sub, arg.Name)
+	return err
 }

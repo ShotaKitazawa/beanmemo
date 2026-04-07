@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/api"
+	"github.com/ShotaKitazawa/beanmemo/backend/internal/auth"
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/database/sqlcgen"
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/usecase"
 )
@@ -20,10 +21,13 @@ func New(recordUsecase *usecase.RecordUsecase, statsUsecase *usecase.StatsUsecas
 }
 
 func (h *Handler) ListRecords(ctx context.Context, params api.ListRecordsParams) (api.ListRecordsRes, error) {
-	records, err := h.recordUsecase.List(ctx, params)
+	userID, ok := auth.UserIDFromContext(ctx)
+	if !ok {
+		return &api.ListRecordsUnauthorized{Message: "unauthorized"}, nil
+	}
+	records, err := h.recordUsecase.List(ctx, userID, params)
 	if err != nil {
-		msg := err.Error()
-		return &api.Error{Message: msg}, nil
+		return &api.ListRecordsInternalServerError{Message: err.Error()}, nil
 	}
 	result := make(api.ListRecordsOKApplicationJSON, 0, len(records))
 	for _, r := range records {
@@ -33,78 +37,98 @@ func (h *Handler) ListRecords(ctx context.Context, params api.ListRecordsParams)
 }
 
 func (h *Handler) CreateRecord(ctx context.Context, req *api.CreateRecordRequest) (api.CreateRecordRes, error) {
-	record, err := h.recordUsecase.Create(ctx, req)
+	userID, ok := auth.UserIDFromContext(ctx)
+	if !ok {
+		return &api.CreateRecordUnauthorized{Message: "unauthorized"}, nil
+	}
+	record, err := h.recordUsecase.Create(ctx, userID, req)
 	if err != nil {
-		msg := err.Error()
-		return &api.CreateRecordInternalServerError{Message: msg}, nil
+		return &api.CreateRecordInternalServerError{Message: err.Error()}, nil
 	}
 	r := toOgenRecord(record)
 	return &r, nil
 }
 
 func (h *Handler) GetRecord(ctx context.Context, params api.GetRecordParams) (api.GetRecordRes, error) {
-	record, related, err := h.recordUsecase.Get(ctx, params.ID)
+	userID, ok := auth.UserIDFromContext(ctx)
+	if !ok {
+		return &api.GetRecordUnauthorized{Message: "unauthorized"}, nil
+	}
+	record, related, err := h.recordUsecase.Get(ctx, userID, params.ID)
 	if err != nil {
 		if errors.Is(err, usecase.ErrNotFound) {
 			return &api.GetRecordNotFound{Message: "record not found"}, nil
 		}
-		msg := err.Error()
-		return &api.GetRecordInternalServerError{Message: msg}, nil
+		return &api.GetRecordInternalServerError{Message: err.Error()}, nil
 	}
-
 	detail := toOgenRecordDetail(record, related)
 	return &detail, nil
 }
 
 func (h *Handler) UpdateRecord(ctx context.Context, req *api.UpdateRecordRequest, params api.UpdateRecordParams) (api.UpdateRecordRes, error) {
-	record, err := h.recordUsecase.Update(ctx, params.ID, req)
+	userID, ok := auth.UserIDFromContext(ctx)
+	if !ok {
+		return &api.UpdateRecordUnauthorized{Message: "unauthorized"}, nil
+	}
+	record, err := h.recordUsecase.Update(ctx, userID, params.ID, req)
 	if err != nil {
 		if errors.Is(err, usecase.ErrNotFound) {
 			return &api.UpdateRecordNotFound{Message: "record not found"}, nil
 		}
-		msg := err.Error()
-		return &api.UpdateRecordInternalServerError{Message: msg}, nil
+		return &api.UpdateRecordInternalServerError{Message: err.Error()}, nil
 	}
 	r := toOgenRecord(record)
 	return &r, nil
 }
 
 func (h *Handler) DeleteRecord(ctx context.Context, params api.DeleteRecordParams) (api.DeleteRecordRes, error) {
-	err := h.recordUsecase.Delete(ctx, params.ID)
+	userID, ok := auth.UserIDFromContext(ctx)
+	if !ok {
+		return &api.DeleteRecordUnauthorized{Message: "unauthorized"}, nil
+	}
+	err := h.recordUsecase.Delete(ctx, userID, params.ID)
 	if err != nil {
 		if errors.Is(err, usecase.ErrNotFound) {
 			return &api.DeleteRecordNotFound{Message: "record not found"}, nil
 		}
-		msg := err.Error()
-		return &api.DeleteRecordInternalServerError{Message: msg}, nil
+		return &api.DeleteRecordInternalServerError{Message: err.Error()}, nil
 	}
 	return &api.DeleteRecordNoContent{}, nil
 }
 
 func (h *Handler) GetStatsSummary(ctx context.Context) (api.GetStatsSummaryRes, error) {
-	summary, err := h.statsUsecase.Summary(ctx)
+	userID, ok := auth.UserIDFromContext(ctx)
+	if !ok {
+		return &api.GetStatsSummaryUnauthorized{Message: "unauthorized"}, nil
+	}
+	summary, err := h.statsUsecase.Summary(ctx, userID)
 	if err != nil {
-		msg := err.Error()
-		return &api.Error{Message: msg}, nil
+		return &api.GetStatsSummaryInternalServerError{Message: err.Error()}, nil
 	}
 	return summary, nil
 }
 
 func (h *Handler) GetStatsFlavorWords(ctx context.Context) (api.GetStatsFlavorWordsRes, error) {
-	words, err := h.statsUsecase.FlavorWords(ctx)
+	userID, ok := auth.UserIDFromContext(ctx)
+	if !ok {
+		return &api.GetStatsFlavorWordsUnauthorized{Message: "unauthorized"}, nil
+	}
+	words, err := h.statsUsecase.FlavorWords(ctx, userID)
 	if err != nil {
-		msg := err.Error()
-		return &api.Error{Message: msg}, nil
+		return &api.GetStatsFlavorWordsInternalServerError{Message: err.Error()}, nil
 	}
 	result := api.GetStatsFlavorWordsOKApplicationJSON(words)
 	return &result, nil
 }
 
 func (h *Handler) GetRecommend(ctx context.Context, params api.GetRecommendParams) (api.GetRecommendRes, error) {
-	result, err := h.statsUsecase.Recommend(ctx, params)
+	userID, ok := auth.UserIDFromContext(ctx)
+	if !ok {
+		return &api.GetRecommendUnauthorized{Message: "unauthorized"}, nil
+	}
+	result, err := h.statsUsecase.Recommend(ctx, userID, params)
 	if err != nil {
-		msg := err.Error()
-		return &api.Error{Message: msg}, nil
+		return &api.GetRecommendInternalServerError{Message: err.Error()}, nil
 	}
 	return result, nil
 }

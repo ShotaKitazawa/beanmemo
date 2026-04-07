@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS users (
   id            BIGINT PRIMARY KEY AUTO_INCREMENT,
+  sub           VARCHAR(255) UNIQUE,
   name          VARCHAR(100) NOT NULL,
-  email         VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
+  email         VARCHAR(255) NOT NULL DEFAULT '',
+  password_hash VARCHAR(255) NOT NULL DEFAULT 'n/a',
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
