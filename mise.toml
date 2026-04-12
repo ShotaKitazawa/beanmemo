@@ -10,7 +10,7 @@ pnpm = "10.33"
 [tasks.dev]
 description = "Start dev environment (mysql + backend with air + frontend with pnpm dev)"
 dir         = "{{config_root}}"
-run         = "docker compose -f docker-compose.dev.yml up"
+run         = "docker compose -f docker-compose.dev.yml up --build"
 
 # ──────────────────────────────────────────
 # Code generation
