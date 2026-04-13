@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/api"
@@ -25,6 +27,9 @@ func main() {
 }
 
 func run() error {
+	disableOIDC := flag.Bool("disable-oidc", false, "skip OIDC verification (dev only)")
+	flag.Parse()
+
 	cfg := config.Load()
 
 	db, err := database.Connect(context.Background(), cfg.DSN)
@@ -37,15 +42,15 @@ func run() error {
 	recordRepo := repository.NewRecordRepository(db)
 	statsRepo := repository.NewStatsRepository(db)
 
-	// DISABLE_OIDC=true のときは dummy user (ID=1) を確保してスキップ
 	var verifier *auth.JWTVerifier
-	if cfg.DisableOIDC {
+	if *disableOIDC {
+		slog.Warn("OIDC verification is disabled — do not use in production")
 		if err := ensureDefaultUser(db); err != nil {
 			return fmt.Errorf("seed default user: %w", err)
 		}
 	} else {
 		if cfg.OIDCIssuerURL == "" {
-			return fmt.Errorf("OIDC_ISSUER_URL is required when DISABLE_OIDC is not set")
+			return fmt.Errorf("OIDC_ISSUER_URL is required when --disable-oidc is not set")
 		}
 		verifier, err = auth.NewJWTVerifier(context.Background(), cfg.OIDCIssuerURL, cfg.AuthzClaimKey, cfg.AuthzClaimValue)
 		if err != nil {
@@ -53,7 +58,7 @@ func run() error {
 		}
 	}
 
-	secHandler := handler.NewSecurityHandler(verifier, userRepo, cfg.DisableOIDC)
+	secHandler := handler.NewSecurityHandler(verifier, userRepo, *disableOIDC)
 
 	recordUC := usecase.NewRecordUsecase(recordRepo)
 	statsUC := usecase.NewStatsUsecase(statsRepo, recordRepo)
@@ -75,7 +80,7 @@ func run() error {
 	mux.Handle("/", spaHandler(http.FS(staticFS)))
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
-	log.Printf("beanmemo backend starting on %s (disableOIDC=%v)", addr, cfg.DisableOIDC)
+	log.Printf("beanmemo backend starting on %s (disableOIDC=%v)", addr, *disableOIDC)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		return fmt.Errorf("server error: %w", err)
 	}

@@ -8,7 +8,6 @@ type Config struct {
 	OIDCIssuerURL   string // OIDC_ISSUER_URL
 	AuthzClaimKey   string // AUTHZ_CLAIM_KEY
 	AuthzClaimValue string // AUTHZ_CLAIM_VALUE
-	DisableOIDC     bool   // DISABLE_OIDC=true のとき OIDC 検証をスキップ（開発用）
 }
 
 func Load() Config {
@@ -26,6 +25,5 @@ func Load() Config {
 		OIDCIssuerURL:   os.Getenv("OIDC_ISSUER_URL"),
 		AuthzClaimKey:   os.Getenv("AUTHZ_CLAIM_KEY"),
 		AuthzClaimValue: os.Getenv("AUTHZ_CLAIM_VALUE"),
-		DisableOIDC:     os.Getenv("DISABLE_OIDC") == "true",
 	}
 }

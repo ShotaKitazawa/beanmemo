@@ -21,12 +21,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
+    command: ["air", "-c", ".air.toml", "--", "--disable-oidc"]
     ports:
       - "8080:8080"
     environment:
       DSN: ${DSN:-beanmemo:beanmemo@tcp(mysql:3306)/beanmemo?parseTime=true}
       PORT: ${PORT:-8080}
-      DISABLE_OIDC: "true"
     volumes:
       - ./backend:/app
     depends_on:
