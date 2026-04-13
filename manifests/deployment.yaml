@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beanmemo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: beanmemo
+  template:
+    metadata:
+      labels:
+        app: beanmemo
+    spec:
+      containers:
+        - name: beanmemo
+          image: ghcr.io/shotakitazawa/beanmemo:main
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: DSN
+              valueFrom:
+                secretKeyRef:
+                  name: beanmemo-secret
+                  key: dsn
+            - name: OIDC_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: beanmemo-secret
+                  key: oidc_issuer_url
+            - name: AUTHZ_CLAIM_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: beanmemo-secret
+                  key: authz_claim_key
+            - name: AUTHZ_CLAIM_VALUE
+              valueFrom:
+                secretKeyRef:
+                  name: beanmemo-secret
+                  key: authz_claim_value
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
