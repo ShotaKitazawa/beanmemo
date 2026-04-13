@@ -11,18 +11,14 @@ jobs:
     permissions:
       packages: write
       pull-requests: read
-    strategy:
-      matrix:
-        name: [backend, frontend]
     steps:
       - name: Delete images for closed PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
-          IMAGE: ${{ matrix.name }}
         run: |
-          PACKAGE="${REPO}%2F${IMAGE}"
+          PACKAGE="${REPO}"
 
           gh api "/users/${OWNER}/packages/container/${PACKAGE}/versions" \
             --paginate \
@@ -35,8 +31,8 @@ jobs:
 
               if [ "$STATE" = "closed" ] || [ "$STATE" = "not_found" ]; then
                 gh api --method DELETE "/users/${OWNER}/packages/container/${PACKAGE}/versions/${VERSION_ID}"
-                echo "Deleted ghcr.io/${OWNER}/${REPO}/${IMAGE}:${TAG} (PR #${PR_NUMBER} is ${STATE})"
+                echo "Deleted ghcr.io/${OWNER}/${REPO}:${TAG} (PR #${PR_NUMBER} is ${STATE})"
               else
-                echo "Skipping ghcr.io/${OWNER}/${REPO}/${IMAGE}:${TAG} (PR #${PR_NUMBER} is ${STATE})"
+                echo "Skipping ghcr.io/${OWNER}/${REPO}:${TAG} (PR #${PR_NUMBER} is ${STATE})"
               fi
             done
