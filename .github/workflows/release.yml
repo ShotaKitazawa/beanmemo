@@ -22,7 +22,7 @@ jobs:
       - name: Set image tag in manifests
         working-directory: manifests
         run: |
-          kustomize edit set image ghcr.io/shotakitazawa/beanmemo=ghcr.io/shotakitazawa/beanmemo:release-${{ github.ref_name }}
+          kustomize edit set image ghcr.io/${{ github.repository }}=ghcr.io/${{ github.repository }}:release-${{ github.ref_name }}
 
       - name: Build install.yaml
         run: kustomize build ./manifests > install.yaml

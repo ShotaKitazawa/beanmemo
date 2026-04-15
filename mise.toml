@@ -10,19 +10,19 @@ air  = "latest"
 
 [tasks.dev]
 description = "Start backend and frontend in parallel (local, no Docker)"
-run         = "mise run dev:backend & mise run dev:frontend & wait"
+run         = "mise run dev-backend & mise run dev-frontend & wait"
 
-[tasks."dev:backend"]
+[tasks."dev-backend"]
 description = "Start backend with Air hot-reload (OIDC disabled)"
 dir         = "{{config_root}}/backend"
 run         = "air -- --disable-oidc"
 
-[tasks."dev:frontend"]
+[tasks."dev-frontend"]
 description = "Start frontend Vite dev server"
 dir         = "{{config_root}}/frontend"
 run         = "pnpm dev"
 
-[tasks."dev:docker"]
+[tasks."dev-docker"]
 description = "Start dev environment with Docker Compose (mysql + backend + frontend)"
 dir         = "{{config_root}}"
 run         = "docker compose -f docker-compose.dev.yml up --build"
@@ -33,27 +33,27 @@ run         = "docker compose -f docker-compose.dev.yml up --build"
 
 [tasks.generate]
 description = "Generate all code (ogen, sqlc, openapi-typescript)"
-depends     = ["generate:backend", "generate:frontend"]
+depends     = ["generate-backend", "generate-frontend"]
 
-[tasks."generate:backend"]
+[tasks."generate-backend"]
 description = "Generate Go code from openapi.yaml (ogen) and SQL queries (sqlc)"
 dir         = "{{config_root}}/backend"
 run         = "go generate ./..."
 
-[tasks."generate:frontend"]
+[tasks."generate-frontend"]
 description = "Generate TypeScript types from openapi.yaml"
 dir         = "{{config_root}}/frontend"
 run         = "pnpm run generate:api"
 
-[tasks."install:backend"]
+[tasks."backend-sync"]
 description = "Download Go modules declared in go.mod/go.sum"
 dir         = "{{config_root}}/backend"
 run         = "go mod download"
 
-[tasks."install:frontend"]
-description = "Install frontend dependencies respecting minimumReleaseAge: runs pnpm install, auto-pins any violating packages to their latest compliant version via pnpm.overrides"
+[tasks."frontend-sync"]
+description = "Install frontend dependencies from pnpm-lock.yaml"
 dir         = "{{config_root}}"
-run         = "node scripts/install_frontend.ts"
+run         = "node scripts/sync-frontend.ts"
 
 # ──────────────────────────────────────────
 # Pre-merge
@@ -69,9 +69,9 @@ mise run ci
 
 [tasks.format]
 description = "Auto-format all source files"
-depends     = ["format:backend", "format:frontend"]
+depends     = ["format-backend", "format-frontend"]
 
-[tasks."format:backend"]
+[tasks."format-backend"]
 description = "Auto-format Go source files with gofmt"
 dir         = "{{config_root}}/backend"
 run         = "go fmt ./..."
@@ -80,9 +80,9 @@ run         = "go fmt ./..."
 # Test
 # ──────────────────────────────────────────
 
-[tasks."test:backend"]
+[tasks."test-backend"]
 description = "Run Go unit tests for the backend"
-depends     = ["install:backend"]
+depends     = ["backend-sync"]
 dir         = "{{config_root}}/backend"
 run         = "go test ./..."
 
@@ -92,36 +92,36 @@ run         = "go test ./..."
 
 [tasks.ci]
 description = "Run all CI checks (build, vet, lint, test, deps-age)"
-depends     = ["ci:build-backend", "ci:build-frontend", "ci:lint-backend", "ci:lint-frontend", "ci:test-frontend", "ci:test-backend", "ci:deps-backend"]
+depends     = ["ci-build-backend", "ci-build-frontend", "ci-lint-backend", "ci-lint-frontend", "ci-test-frontend", "ci-test-backend", "ci-deps-backend"]
 
-[tasks."ci:test-backend"]
+[tasks."ci-test-backend"]
 description = "Run Go unit tests for the backend (CI)"
-depends     = ["test:backend"]
+depends     = ["test-backend"]
 
-[tasks."ci:build-backend"]
+[tasks."ci-build-backend"]
 description = "Build and vet Go backend"
-depends     = ["install:backend"]
+depends     = ["backend-sync"]
 dir         = "{{config_root}}/backend"
 run         = """
 go build ./...
 go vet ./...
 """
 
-[tasks."ci:build-frontend"]
+[tasks."ci-build-frontend"]
 description = "TypeScript check + Vite production build"
-depends     = ["install:frontend"]
+depends     = ["frontend-sync"]
 dir         = "{{config_root}}/frontend"
 run         = "pnpm run build"
 
-[tasks."ci:lint-backend"]
+[tasks."ci-lint-backend"]
 description = "Lint Go backend with golangci-lint"
-depends     = ["install:backend"]
+depends     = ["backend-sync"]
 dir         = "{{config_root}}/backend"
 run         = "go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint run ./..."
 
-[tasks."ci:lint-frontend"]
+[tasks."ci-lint-frontend"]
 description = "Lint + format-check + typecheck frontend"
-depends     = ["install:frontend"]
+depends     = ["frontend-sync"]
 dir         = "{{config_root}}/frontend"
 run         = """
 pnpm run lint
@@ -129,20 +129,20 @@ pnpm run format:check
 pnpm run typecheck
 """
 
-[tasks."format:frontend"]
+[tasks."format-frontend"]
 description = "Auto-format frontend source files with oxfmt"
-depends     = ["install:frontend"]
+depends     = ["frontend-sync"]
 dir         = "{{config_root}}/frontend"
 run         = "pnpm run format"
 
-[tasks."ci:test-frontend"]
+[tasks."ci-test-frontend"]
 description = "Run frontend unit tests with Vitest"
-depends     = ["install:frontend"]
+depends     = ["frontend-sync"]
 dir         = "{{config_root}}/frontend"
 run         = "pnpm run test"
 
-[tasks."ci:deps-backend"]
+[tasks."ci-deps-backend"]
 description = "Ensure all Go dependencies were released >= 1 week ago"
-depends     = ["install:backend"]
+depends     = ["backend-sync"]
 dir         = "{{config_root}}"
 run         = "node scripts/check_deps_age_backend.ts"
