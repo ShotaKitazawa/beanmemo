@@ -1,11 +1,18 @@
 #!/usr/bin/env node
 /**
- * Runs pnpm install, detecting any packages that violate the minimumReleaseAge
- * constraint and automatically pinning them to the latest compliant version via
- * pnpm.overrides in package.json.
+ * Syncs frontend dependencies by running pnpm install, and detects packages
+ * that violate the minimumReleaseAge constraint.
  *
- * Usage: node scripts/install_frontend.ts
- * Tests: node --test scripts/install_frontend.ts
+ * Default (no flags): reports the offending package with a suggested fix, then
+ * exits with code 1. Does NOT modify package.json. Safe for automated use.
+ *
+ * --pin: automatically pins violating packages to an older compliant version via
+ * pnpm.overrides in package.json and retries until all violations are resolved.
+ * Modifies package.json, so must only be run with explicit human intent
+ * (via `pnpm run sync:pin`).
+ *
+ * Usage: node scripts/sync-frontend.ts [--pin]
+ * Tests: node --test scripts/sync-frontend.ts
  */
 
 import { execSync } from 'node:child_process';
@@ -59,7 +66,7 @@ export function applyOverride(
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
-// Run with: node --test scripts/install_frontend.ts
+// Run with: node --test scripts/sync-frontend.ts
 
 if (process.env.NODE_TEST_CONTEXT) {
   const { test } = await import('node:test');
@@ -112,11 +119,13 @@ if (process.env.NODE_TEST_CONTEXT) {
     applyOverride(input, '@emnapi/core', '1.9.1');
     assert.deepEqual(input.pnpm?.overrides, { browserslist: '4.28.1' });
   });
+
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 if (!process.env.NODE_TEST_CONTEXT) {
+  const pin = process.argv.includes('--pin');
   const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'frontend');
 
   const workspaceYaml = readFileSync(resolve(rootDir, 'pnpm-workspace.yaml'), 'utf8');
@@ -135,7 +144,7 @@ if (!process.env.NODE_TEST_CONTEXT) {
     try {
       output = execSync('pnpm install', { cwd: rootDir, stdio: 'pipe' }).toString();
       console.log(output);
-      console.log('All violations resolved.');
+      console.log('pnpm install succeeded.');
       break;
     } catch (e) {
       const err = e as { stdout?: Buffer; stderr?: Buffer };
@@ -149,19 +158,27 @@ if (!process.env.NODE_TEST_CONTEXT) {
     }
 
     const pkg = match[1];
-    console.log(`\nViolation detected: ${pkg}`);
+    console.error(`\nViolation detected: ${pkg}`);
 
     const raw = execSync(`pnpm view ${pkg} time --json`, { cwd: rootDir }).toString();
     const version = findCompliantVersion(JSON.parse(raw) as Record<string, string>, cutoff);
     if (!version) {
-      throw new Error(`No compliant version found for ${pkg} (cutoff: ${cutoff.toISOString()})`);
+      console.error(`No compliant version found for ${pkg} (cutoff: ${cutoff.toISOString()})`);
+      process.exit(1);
     }
-    console.log(`Pinning to: ${pkg}@${version}`);
 
-    const pkgJsonPath = resolve(rootDir, 'package.json');
-    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf8')) as PackageJson;
-    writeFileSync(pkgJsonPath, JSON.stringify(applyOverride(pkgJson, pkg, version), null, 2) + '\n');
+    if (pin) {
+      console.log(`Pinning to: ${pkg}@${version}`);
+      const pkgJsonPath = resolve(rootDir, 'package.json');
+      const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf8')) as PackageJson;
+      writeFileSync(pkgJsonPath, JSON.stringify(applyOverride(pkgJson, pkg, version), null, 2) + '\n');
+    } else {
+      console.error(`Suggested fix: add the following to frontend/package.json under pnpm.overrides:`);
+      console.error(`  "${pkg}": "${version}"`);
+      console.error(`Or run: pnpm run sync:pin`);
+      process.exit(1);
+    }
   }
 
-  console.log(`\nDone in ${iterations} iteration(s).`);
+  if (pin) console.log(`\nDone in ${iterations} iteration(s).`);
 }

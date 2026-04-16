@@ -12,7 +12,8 @@
     "format": "oxfmt src",
     "format:check": "oxfmt --check src",
     "typecheck": "tsgo --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sync:pin": "node ../scripts/sync-frontend.ts --pin"
   },
   "dependencies": {
     "oidc-client-ts": "^3.5.0",

@@ -13,7 +13,13 @@ Page-level components and custom hooks are kept separate. All API communication 
 
 ## Development Cycle
 
-All commands (tests, code generation, linting, builds, etc.) must be run via `mise run <task>`. Available tasks are defined in `mise.toml`.
+All commands (tests, code generation, linting, builds, etc.) must be run via `mise run <task>`. Available tasks are defined in `mise.toml`. Never invoke `go test`, `pnpm test`, or other tool-specific commands directly — always use the corresponding `mise run` task.
+
+### Exception: commands that modify dependency manifests
+
+The following commands modify `package.json` and must **never** be run as mise tasks or invoked automatically. Run them manually with explicit human intent only:
+
+- `pnpm run sync:pin` (from `frontend/`) — detects packages violating `minimumReleaseAge` and automatically pins them to an older compliant version via `pnpm.overrides` in `package.json`.
 
 - Changes that require code generation (OpenAPI, SQL) must pass `mise run pre-merge`, which detects missing re-generation via `git diff --exit-code`.
 - Generated code is committed to the repository; CI assumes generated files are up to date.
@@ -32,11 +38,11 @@ All feature development and bug fixes must follow the RED → GREEN → REFACTOR
 - Place test files alongside source files (`*_test.go`).
 - Use table-driven tests for UseCase and Repository layers.
 - Mock lower-layer interfaces when testing upper layers (e.g., mock Repository when testing UseCase).
-- Run tests with `mise run test:backend`.
+- Run tests with `mise run test-backend`.
 
 ### Frontend (TypeScript / React)
 
 - Place test files alongside source files (`*.test.ts` / `*.test.tsx`).
 - Test custom hooks with `@testing-library/react` (`renderHook`).
 - Test components with `@testing-library/react` focusing on user-visible behavior, not implementation details.
-- Run tests with `mise run ci:test-frontend`.
+- Run tests with `mise run ci-test-frontend`.
