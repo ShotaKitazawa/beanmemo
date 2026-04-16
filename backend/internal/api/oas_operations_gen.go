@@ -12,6 +12,7 @@ const (
 	GetRecordOperation           OperationName = "GetRecord"
 	GetStatsFlavorWordsOperation OperationName = "GetStatsFlavorWords"
 	GetStatsSummaryOperation     OperationName = "GetStatsSummary"
+	GetUserinfoOperation         OperationName = "GetUserinfo"
 	ListRecordsOperation         OperationName = "ListRecords"
 	UpdateRecordOperation        OperationName = "UpdateRecord"
 )

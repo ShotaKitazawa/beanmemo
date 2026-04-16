@@ -63,7 +63,14 @@ func run() error {
 	recordUC := usecase.NewRecordUsecase(recordRepo)
 	statsUC := usecase.NewStatsUsecase(statsRepo, recordRepo)
 
-	h := handler.New(recordUC, statsUC)
+	var userinfoProvider handler.UserinfoProvider
+	if *disableOIDC {
+		userinfoProvider = handler.NewDisabledOIDCUserinfoProvider()
+	} else {
+		userinfoProvider = verifier
+	}
+
+	h := handler.New(recordUC, statsUC, userinfoProvider)
 
 	srv, err := api.NewServer(h, secHandler)
 	if err != nil {

@@ -51,5 +51,6 @@ func (s *SecurityHandler) HandleBearerAuth(ctx context.Context, _ api.OperationN
 		return ctx, fmt.Errorf("get user: %w", err)
 	}
 
+	ctx = auth.WithToken(ctx, t.Token)
 	return auth.WithUserID(ctx, userID), nil
 }

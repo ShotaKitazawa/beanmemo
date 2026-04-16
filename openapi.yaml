@@ -207,6 +207,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /userinfo:
+    get:
+      operationId: getUserinfo
+      summary: Get current user info (proxied from OIDC provider, or dummy in disable-oidc mode)
+      responses:
+        "200":
+          description: User info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserinfoResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /stats/summary:
     get:
       operationId: getStatsSummary
@@ -521,6 +545,23 @@ components:
         name_match_avg:
           type: number
           format: float
+          nullable: true
+
+    UserinfoResponse:
+      type: object
+      required:
+        - sub
+      properties:
+        sub:
+          type: string
+        name:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        picture:
+          type: string
           nullable: true
 
     Error:

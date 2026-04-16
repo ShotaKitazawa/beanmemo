@@ -52,12 +52,21 @@ func setupTestServer(t *testing.T, claimKey, claimValue string) (*auth.JWTVerifi
 		case "/.well-known/openid-configuration":
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]string{
-				"issuer":   srvURL,
-				"jwks_uri": srvURL + "/.well-known/jwks.json",
+				"issuer":            srvURL,
+				"jwks_uri":          srvURL + "/.well-known/jwks.json",
+				"userinfo_endpoint": srvURL + "/userinfo",
 			})
 		case "/.well-known/jwks.json":
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write(jwksBytes)
+		case "/userinfo":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"sub":     "user|123",
+				"name":    "Test User",
+				"email":   "test@example.com",
+				"picture": "https://example.com/pic.jpg",
+			})
 		default:
 			http.NotFound(w, r)
 		}
@@ -190,6 +199,27 @@ func TestJWTVerifier_ClaimCheck_WrongValue(t *testing.T) {
 	_, err := verifier.Verify(context.Background(), tokenStr)
 	if err == nil {
 		t.Fatal("expected error when claim value does not match")
+	}
+}
+
+func TestJWTVerifier_FetchUserinfo_Success(t *testing.T) {
+	verifier, key, srv := setupTestServer(t, "", "")
+	defer srv.Close()
+
+	tokenStr := buildToken(t, key, srv.URL, "user|123", nil)
+
+	result, err := verifier.FetchUserinfo(context.Background(), tokenStr)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result.Sub != "user|123" {
+		t.Errorf("expected sub 'user|123', got %q", result.Sub)
+	}
+	if result.Name != "Test User" {
+		t.Errorf("expected name 'Test User', got %q", result.Name)
+	}
+	if result.Email != "test@example.com" {
+		t.Errorf("expected email 'test@example.com', got %q", result.Email)
 	}
 }
 

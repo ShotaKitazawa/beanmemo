@@ -360,6 +360,14 @@ type GetStatsSummaryUnauthorized Error
 
 func (*GetStatsSummaryUnauthorized) getStatsSummaryRes() {}
 
+type GetUserinfoInternalServerError Error
+
+func (*GetUserinfoInternalServerError) getUserinfoRes() {}
+
+type GetUserinfoUnauthorized Error
+
+func (*GetUserinfoUnauthorized) getUserinfoRes() {}
+
 // Ref: #/components/schemas/GroupStat
 type GroupStat struct {
 	Label     string  `json:"label"`
@@ -2348,3 +2356,53 @@ func (s *UpdateRecordRequestRoastLevel) UnmarshalText(data []byte) error {
 type UpdateRecordUnauthorized Error
 
 func (*UpdateRecordUnauthorized) updateRecordRes() {}
+
+// Ref: #/components/schemas/UserinfoResponse
+type UserinfoResponse struct {
+	Sub     string       `json:"sub"`
+	Name    OptNilString `json:"name"`
+	Email   OptNilString `json:"email"`
+	Picture OptNilString `json:"picture"`
+}
+
+// GetSub returns the value of Sub.
+func (s *UserinfoResponse) GetSub() string {
+	return s.Sub
+}
+
+// GetName returns the value of Name.
+func (s *UserinfoResponse) GetName() OptNilString {
+	return s.Name
+}
+
+// GetEmail returns the value of Email.
+func (s *UserinfoResponse) GetEmail() OptNilString {
+	return s.Email
+}
+
+// GetPicture returns the value of Picture.
+func (s *UserinfoResponse) GetPicture() OptNilString {
+	return s.Picture
+}
+
+// SetSub sets the value of Sub.
+func (s *UserinfoResponse) SetSub(val string) {
+	s.Sub = val
+}
+
+// SetName sets the value of Name.
+func (s *UserinfoResponse) SetName(val OptNilString) {
+	s.Name = val
+}
+
+// SetEmail sets the value of Email.
+func (s *UserinfoResponse) SetEmail(val OptNilString) {
+	s.Email = val
+}
+
+// SetPicture sets the value of Picture.
+func (s *UserinfoResponse) SetPicture(val OptNilString) {
+	s.Picture = val
+}
+
+func (*UserinfoResponse) getUserinfoRes() {}

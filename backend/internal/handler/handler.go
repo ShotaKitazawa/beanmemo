@@ -11,13 +11,53 @@ import (
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/usecase"
 )
 
-type Handler struct {
-	recordUsecase *usecase.RecordUsecase
-	statsUsecase  *usecase.StatsUsecase
+// UserinfoProvider fetches user info from the OIDC userinfo endpoint (or returns
+// dummy data when OIDC is disabled).
+type UserinfoProvider interface {
+	FetchUserinfo(ctx context.Context, accessToken string) (auth.UserinfoResult, error)
 }
 
-func New(recordUsecase *usecase.RecordUsecase, statsUsecase *usecase.StatsUsecase) *Handler {
-	return &Handler{recordUsecase: recordUsecase, statsUsecase: statsUsecase}
+type Handler struct {
+	recordUsecase    *usecase.RecordUsecase
+	statsUsecase     *usecase.StatsUsecase
+	userinfoProvider UserinfoProvider
+}
+
+func New(recordUsecase *usecase.RecordUsecase, statsUsecase *usecase.StatsUsecase, userinfoProvider UserinfoProvider) *Handler {
+	return &Handler{
+		recordUsecase:    recordUsecase,
+		statsUsecase:     statsUsecase,
+		userinfoProvider: userinfoProvider,
+	}
+}
+
+func (h *Handler) GetUserinfo(ctx context.Context) (api.GetUserinfoRes, error) {
+	_, ok := auth.UserIDFromContext(ctx)
+	if !ok {
+		return &api.GetUserinfoUnauthorized{Message: "unauthorized"}, nil
+	}
+	token, _ := auth.TokenFromContext(ctx)
+	result, err := h.userinfoProvider.FetchUserinfo(ctx, token)
+	if err != nil {
+		return &api.GetUserinfoInternalServerError{Message: err.Error()}, nil
+	}
+	resp := api.UserinfoResponse{Sub: result.Sub}
+	if result.Name != "" {
+		resp.Name = api.OptNilString{Set: true, Value: result.Name}
+	} else {
+		resp.Name = api.OptNilString{Set: true, Null: true}
+	}
+	if result.Email != "" {
+		resp.Email = api.OptNilString{Set: true, Value: result.Email}
+	} else {
+		resp.Email = api.OptNilString{Set: true, Null: true}
+	}
+	if result.Picture != "" {
+		resp.Picture = api.OptNilString{Set: true, Value: result.Picture}
+	} else {
+		resp.Picture = api.OptNilString{Set: true, Null: true}
+	}
+	return &resp, nil
 }
 
 func (h *Handler) ListRecords(ctx context.Context, params api.ListRecordsParams) (api.ListRecordsRes, error) {

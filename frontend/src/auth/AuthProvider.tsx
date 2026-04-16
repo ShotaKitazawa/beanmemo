@@ -19,8 +19,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (oidcDisabled) {
-      // Dev mode: no auth needed; backend uses dummy user
-      setTokenProvider(async () => null);
+      // Dev mode: send a dummy token so the backend's ogen security check passes.
+      // The backend with --disable-oidc accepts any non-empty Bearer token.
+      setTokenProvider(async () => "disabled");
       return;
     }
 

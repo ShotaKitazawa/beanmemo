@@ -17,18 +17,28 @@ type Claims struct {
 	Sub string
 }
 
+// UserinfoResult holds user info returned by the OIDC userinfo endpoint.
+type UserinfoResult struct {
+	Sub     string
+	Name    string
+	Email   string
+	Picture string
+}
+
 // JWTVerifier validates JWT tokens using OIDC JWKS.
 type JWTVerifier struct {
-	issuerURL  string
-	claimKey   string
-	claimValue string
-	jwksCache  *jwk.Cache
-	jwksURI    string
+	issuerURL        string
+	claimKey         string
+	claimValue       string
+	jwksCache        *jwk.Cache
+	jwksURI          string
+	userinfoEndpoint string
 }
 
 type oidcDiscovery struct {
-	JWKSURI string `json:"jwks_uri"`
-	Issuer  string `json:"issuer"`
+	JWKSURI          string `json:"jwks_uri"`
+	Issuer           string `json:"issuer"`
+	UserinfoEndpoint string `json:"userinfo_endpoint"`
 }
 
 // NewJWTVerifier creates a JWTVerifier by fetching the OIDC discovery document
@@ -55,11 +65,47 @@ func NewJWTVerifier(ctx context.Context, issuerURL, claimKey, claimValue string)
 	}
 
 	return &JWTVerifier{
-		issuerURL:  issuerURL,
-		claimKey:   claimKey,
-		claimValue: claimValue,
-		jwksCache:  cache,
-		jwksURI:    disc.JWKSURI,
+		issuerURL:        issuerURL,
+		claimKey:         claimKey,
+		claimValue:       claimValue,
+		jwksCache:        cache,
+		jwksURI:          disc.JWKSURI,
+		userinfoEndpoint: disc.UserinfoEndpoint,
+	}, nil
+}
+
+// FetchUserinfo calls the OIDC userinfo endpoint with the given access token.
+func (v *JWTVerifier) FetchUserinfo(ctx context.Context, accessToken string) (UserinfoResult, error) {
+	if v.userinfoEndpoint == "" {
+		return UserinfoResult{}, fmt.Errorf("userinfo_endpoint not present in OIDC discovery document")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, v.userinfoEndpoint, nil)
+	if err != nil {
+		return UserinfoResult{}, fmt.Errorf("create userinfo request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return UserinfoResult{}, fmt.Errorf("fetch userinfo: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return UserinfoResult{}, fmt.Errorf("userinfo endpoint returned status %d", resp.StatusCode)
+	}
+	var raw struct {
+		Sub     string `json:"sub"`
+		Name    string `json:"name"`
+		Email   string `json:"email"`
+		Picture string `json:"picture"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return UserinfoResult{}, fmt.Errorf("decode userinfo response: %w", err)
+	}
+	return UserinfoResult{
+		Sub:     raw.Sub,
+		Name:    raw.Name,
+		Email:   raw.Email,
+		Picture: raw.Picture,
 	}, nil
 }
 

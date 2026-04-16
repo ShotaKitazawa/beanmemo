@@ -25,6 +25,10 @@ type GetStatsSummaryRes interface {
 	getStatsSummaryRes()
 }
 
+type GetUserinfoRes interface {
+	getUserinfoRes()
+}
+
 type ListRecordsRes interface {
 	listRecordsRes()
 }

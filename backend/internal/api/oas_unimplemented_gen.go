@@ -67,6 +67,15 @@ func (UnimplementedHandler) GetStatsSummary(ctx context.Context) (r GetStatsSumm
 	return r, ht.ErrNotImplemented
 }
 
+// GetUserinfo implements getUserinfo operation.
+//
+// Get current user info (proxied from OIDC provider, or dummy in disable-oidc mode).
+//
+// GET /userinfo
+func (UnimplementedHandler) GetUserinfo(ctx context.Context) (r GetUserinfoRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListRecords implements listRecords operation.
 //
 // List records.

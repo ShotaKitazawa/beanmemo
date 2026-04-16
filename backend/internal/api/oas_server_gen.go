@@ -44,6 +44,12 @@ type Handler interface {
 	//
 	// GET /stats/summary
 	GetStatsSummary(ctx context.Context) (GetStatsSummaryRes, error)
+	// GetUserinfo implements getUserinfo operation.
+	//
+	// Get current user info (proxied from OIDC provider, or dummy in disable-oidc mode).
+	//
+	// GET /userinfo
+	GetUserinfo(ctx context.Context) (GetUserinfoRes, error)
 	// ListRecords implements listRecords operation.
 	//
 	// List records.

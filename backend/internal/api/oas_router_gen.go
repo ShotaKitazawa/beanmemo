@@ -29,6 +29,9 @@ var (
 	rn9AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
+	rn10AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
 )
 
 func (s *Server) cutPrefix(path string) (string, bool) {
@@ -255,6 +258,31 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 
+				}
+
+			case 'u': // Prefix: "userinfo"
+
+				if l := len("userinfo"); len(elem) >= l && elem[0:l] == "userinfo" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch r.Method {
+					case "GET":
+						s.handleGetUserinfoRequest([0]string{}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, notAllowedParams{
+							allowedMethods: "GET",
+							allowedHeaders: rn10AllowedHeaders,
+							acceptPost:     "",
+							acceptPatch:    "",
+						})
+					}
+
+					return
 				}
 
 			}
@@ -545,6 +573,31 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						}
 					}
 
+				}
+
+			case 'u': // Prefix: "userinfo"
+
+				if l := len("userinfo"); len(elem) >= l && elem[0:l] == "userinfo" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch method {
+					case "GET":
+						r.name = GetUserinfoOperation
+						r.summary = "Get current user info (proxied from OIDC provider, or dummy in disable-oidc mode)"
+						r.operationID = "getUserinfo"
+						r.operationGroup = ""
+						r.pathPattern = "/userinfo"
+						r.args = args
+						r.count = 0
+						return r, true
+					default:
+						return
+					}
 				}
 
 			}
