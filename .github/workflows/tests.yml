@@ -30,14 +30,10 @@ jobs:
           key: pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
           restore-keys: pnpm-
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
-
       - name: Run backend tests
         run: mise run test-backend
 
-      - run: mise pre-merge
+      - run: mise run pre-merge
 
       - name: Check no uncommitted changes
         run: git diff --exit-code
