@@ -1,22 +1,4 @@
 services:
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-beanmemo}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-beanmemo}
-      MYSQL_USER: ${MYSQL_USER:-beanmemo}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-beanmemo}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./backend/db/migrations:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-beanmemo}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   backend:
     build:
       context: ./backend
@@ -25,13 +7,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DSN: ${DSN:-beanmemo:beanmemo@tcp(mysql:3306)/beanmemo?parseTime=true}
+      DSN: ${DSN:-beanmemo.db}
       PORT: ${PORT:-8080}
     volumes:
       - ./backend:/app
-    depends_on:
-      mysql:
-        condition: service_healthy
 
   frontend:
     build:
@@ -48,5 +27,4 @@ services:
       - backend
 
 volumes:
-  mysql_data:
   frontend_node_modules:

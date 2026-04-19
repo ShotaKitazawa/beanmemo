@@ -19,7 +19,7 @@ type stubRecordRepo struct {
 	listAllFn      func(context.Context, int64) ([]sqlcgen.Record, error)
 	listByOriginFn func(context.Context, int64, string) ([]sqlcgen.Record, error)
 	listByRoastFn  func(context.Context, int64, string) ([]sqlcgen.Record, error)
-	listByRatingFn func(context.Context, int64, int8) ([]sqlcgen.Record, error)
+	listByRatingFn func(context.Context, int64, int64) ([]sqlcgen.Record, error)
 	listByBrewFn   func(context.Context, int64, string) ([]sqlcgen.Record, error)
 	getFn          func(context.Context, int64, int64) (sqlcgen.Record, error)
 	getRelatedFn   func(context.Context, int64, int64, string) ([]sqlcgen.Record, error)
@@ -49,7 +49,7 @@ func (s *stubRecordRepo) ListByRoastLevel(ctx context.Context, userID int64, roa
 	return nil, nil
 }
 
-func (s *stubRecordRepo) ListByRatingMin(ctx context.Context, userID int64, ratingMin int8) ([]sqlcgen.Record, error) {
+func (s *stubRecordRepo) ListByRatingMin(ctx context.Context, userID int64, ratingMin int64) ([]sqlcgen.Record, error) {
 	if s.listByRatingFn != nil {
 		return s.listByRatingFn(ctx, userID, ratingMin)
 	}
@@ -100,7 +100,7 @@ func (s *stubRecordRepo) Delete(ctx context.Context, id, userID int64) error {
 
 // --- helpers ---
 
-func makeRecord(id int64, name string, rating int8) sqlcgen.Record {
+func makeRecord(id int64, name string, rating int64) sqlcgen.Record {
 	return sqlcgen.Record{
 		ID:        id,
 		UserID:    testUserID,
@@ -308,7 +308,7 @@ func TestRecordUsecaseList_ByOrigin(t *testing.T) {
 func TestRecordUsecaseList_ByRatingMin(t *testing.T) {
 	r := makeRecord(1, "A", 4)
 	repo := &stubRecordRepo{
-		listByRatingFn: func(_ context.Context, _ int64, ratingMin int8) ([]sqlcgen.Record, error) {
+		listByRatingFn: func(_ context.Context, _ int64, ratingMin int64) ([]sqlcgen.Record, error) {
 			if ratingMin != 4 {
 				t.Errorf("unexpected ratingMin %d", ratingMin)
 			}

@@ -15,8 +15,8 @@ type stubStatsRepo struct {
 	statsByOriginFn func(context.Context, int64) ([]sqlcgen.StatsByOriginRow, error)
 	statsByRoastFn  func(context.Context, int64) ([]sqlcgen.StatsByRoastLevelRow, error)
 	statsByBrewFn   func(context.Context, int64) ([]sqlcgen.StatsByBrewMethodRow, error)
-	avgByOriginFn   func(context.Context, int64, string) (interface{}, error)
-	avgByNameFn     func(context.Context, int64, string) (interface{}, error)
+	avgByOriginFn   func(context.Context, int64, string) (sql.NullFloat64, error)
+	avgByNameFn     func(context.Context, int64, string) (sql.NullFloat64, error)
 }
 
 func (s *stubStatsRepo) StatsByOrigin(ctx context.Context, userID int64) ([]sqlcgen.StatsByOriginRow, error) {
@@ -40,18 +40,18 @@ func (s *stubStatsRepo) StatsByBrewMethod(ctx context.Context, userID int64) ([]
 	return nil, nil
 }
 
-func (s *stubStatsRepo) AvgRatingByOrigin(ctx context.Context, userID int64, origin string) (interface{}, error) {
+func (s *stubStatsRepo) AvgRatingByOrigin(ctx context.Context, userID int64, origin string) (sql.NullFloat64, error) {
 	if s.avgByOriginFn != nil {
 		return s.avgByOriginFn(ctx, userID, origin)
 	}
-	return nil, nil
+	return sql.NullFloat64{}, nil
 }
 
-func (s *stubStatsRepo) AvgRatingByName(ctx context.Context, userID int64, name string) (interface{}, error) {
+func (s *stubStatsRepo) AvgRatingByName(ctx context.Context, userID int64, name string) (sql.NullFloat64, error) {
 	if s.avgByNameFn != nil {
 		return s.avgByNameFn(ctx, userID, name)
 	}
-	return nil, nil
+	return sql.NullFloat64{}, nil
 }
 
 type stubStatsRecordRepo struct {
@@ -119,38 +119,17 @@ func TestTokenize_LowercasesWords(t *testing.T) {
 
 // --- toFloat32 ---
 
-func TestToFloat32_Float64(t *testing.T) {
-	got := toFloat32(float64(3.5))
+func TestToFloat32_ValidValue(t *testing.T) {
+	got := toFloat32(sql.NullFloat64{Float64: 3.5, Valid: true})
 	if got != 3.5 {
 		t.Errorf("expected 3.5, got %v", got)
 	}
 }
 
-func TestToFloat32_Float32(t *testing.T) {
-	got := toFloat32(float32(4.0))
-	if got != 4.0 {
-		t.Errorf("expected 4.0, got %v", got)
-	}
-}
-
-func TestToFloat32_ByteSlice(t *testing.T) {
-	got := toFloat32([]byte("3.75"))
-	if got != 3.75 {
-		t.Errorf("expected 3.75, got %v", got)
-	}
-}
-
-func TestToFloat32_Nil(t *testing.T) {
-	got := toFloat32(nil)
+func TestToFloat32_Invalid(t *testing.T) {
+	got := toFloat32(sql.NullFloat64{Valid: false})
 	if got != 0 {
-		t.Errorf("expected 0 for nil, got %v", got)
-	}
-}
-
-func TestToFloat32_StringFallback(t *testing.T) {
-	got := toFloat32("2.5")
-	if got != 2.5 {
-		t.Errorf("expected 2.5, got %v", got)
+		t.Errorf("expected 0 for invalid, got %v", got)
 	}
 }
 
@@ -160,12 +139,12 @@ func TestStatsUsecaseSummary_Basic(t *testing.T) {
 	statsRepo := &stubStatsRepo{
 		statsByOriginFn: func(_ context.Context, _ int64) ([]sqlcgen.StatsByOriginRow, error) {
 			return []sqlcgen.StatsByOriginRow{
-				{Label: sql.NullString{String: "Ethiopia", Valid: true}, Count: 3, AvgRating: float64(4.0)},
+				{Label: sql.NullString{String: "Ethiopia", Valid: true}, Count: 3, AvgRating: sql.NullFloat64{Float64: 4.0, Valid: true}},
 			}, nil
 		},
 		statsByRoastFn: func(_ context.Context, _ int64) ([]sqlcgen.StatsByRoastLevelRow, error) {
 			return []sqlcgen.StatsByRoastLevelRow{
-				{Label: sql.NullString{String: "light", Valid: true}, Count: 2, AvgRating: float64(4.5)},
+				{Label: sql.NullString{String: "light", Valid: true}, Count: 2, AvgRating: sql.NullFloat64{Float64: 4.5, Valid: true}},
 			}, nil
 		},
 		statsByBrewFn: func(_ context.Context, _ int64) ([]sqlcgen.StatsByBrewMethodRow, error) {
@@ -200,8 +179,8 @@ func TestStatsUsecaseSummary_NullLabelsSkipped(t *testing.T) {
 	statsRepo := &stubStatsRepo{
 		statsByOriginFn: func(_ context.Context, _ int64) ([]sqlcgen.StatsByOriginRow, error) {
 			return []sqlcgen.StatsByOriginRow{
-				{Label: sql.NullString{Valid: false}, Count: 2, AvgRating: float64(3.0)},
-				{Label: sql.NullString{String: "Brazil", Valid: true}, Count: 1, AvgRating: float64(4.0)},
+				{Label: sql.NullString{Valid: false}, Count: 2, AvgRating: sql.NullFloat64{Float64: 3.0, Valid: true}},
+				{Label: sql.NullString{String: "Brazil", Valid: true}, Count: 1, AvgRating: sql.NullFloat64{Float64: 4.0, Valid: true}},
 			}, nil
 		},
 		statsByRoastFn: func(_ context.Context, _ int64) ([]sqlcgen.StatsByRoastLevelRow, error) {
@@ -323,11 +302,11 @@ func TestStatsUsecaseRecommend_Locked(t *testing.T) {
 
 func TestStatsUsecaseRecommend_UnlockedWithOrigin(t *testing.T) {
 	statsRepo := &stubStatsRepo{
-		avgByOriginFn: func(_ context.Context, _ int64, origin string) (interface{}, error) {
+		avgByOriginFn: func(_ context.Context, _ int64, origin string) (sql.NullFloat64, error) {
 			if origin != "Ethiopia" {
-				return nil, nil
+				return sql.NullFloat64{}, nil
 			}
-			return float64(4.2), nil
+			return sql.NullFloat64{Float64: 4.2, Valid: true}, nil
 		},
 	}
 	recordRepo := &stubStatsRecordRepo{

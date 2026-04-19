@@ -228,7 +228,7 @@ func toOgenRecord(r sqlcgen.Record) api.Record {
 		rec.Shop = api.OptNilString{Set: true, Null: true}
 	}
 	if r.Price.Valid {
-		rec.Price = api.OptNilInt{Set: true, Value: int(r.Price.Int32)}
+		rec.Price = api.OptNilInt{Set: true, Value: int(r.Price.Int64)}
 	} else {
 		rec.Price = api.OptNilInt{Set: true, Null: true}
 	}
@@ -286,7 +286,7 @@ func toOgenRecordDetail(r sqlcgen.Record, related []sqlcgen.Record) api.RecordDe
 		detail.Shop = api.OptNilString{Set: true, Null: true}
 	}
 	if r.Price.Valid {
-		detail.Price = api.OptNilInt{Set: true, Value: int(r.Price.Int32)}
+		detail.Price = api.OptNilInt{Set: true, Value: int(r.Price.Int64)}
 	} else {
 		detail.Price = api.OptNilInt{Set: true, Null: true}
 	}

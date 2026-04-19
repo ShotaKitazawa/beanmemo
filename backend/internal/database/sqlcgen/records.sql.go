@@ -33,11 +33,11 @@ INSERT INTO records (
 type CreateRecordParams struct {
 	UserID       int64          `json:"user_id"`
 	Name         string         `json:"name"`
-	Rating       int8           `json:"rating"`
+	Rating       int64          `json:"rating"`
 	Origin       sql.NullString `json:"origin"`
 	RoastLevel   sql.NullString `json:"roast_level"`
 	Shop         sql.NullString `json:"shop"`
-	Price        sql.NullInt32  `json:"price"`
+	Price        sql.NullInt64  `json:"price"`
 	PurchasedAt  sql.NullTime   `json:"purchased_at"`
 	TastingNote  sql.NullString `json:"tasting_note"`
 	BrewMethod   sql.NullString `json:"brew_method"`
@@ -333,7 +333,7 @@ SELECT id, user_id, name, rating, origin, roast_level, shop, price, purchased_at
 
 type ListRecordsByRatingMinParams struct {
 	UserID int64 `json:"user_id"`
-	Rating int8  `json:"rating"`
+	Rating int64 `json:"rating"`
 }
 
 func (q *Queries) ListRecordsByRatingMin(ctx context.Context, arg ListRecordsByRatingMinParams) ([]Record, error) {
@@ -436,17 +436,17 @@ UPDATE records SET
   brew_method   = ?,
   recipe        = ?,
   is_note_filled = ?,
-  updated_at    = NOW()
+  updated_at    = CURRENT_TIMESTAMP
 WHERE id = ? AND user_id = ?
 `
 
 type UpdateRecordParams struct {
 	Name         string         `json:"name"`
-	Rating       int8           `json:"rating"`
+	Rating       int64          `json:"rating"`
 	Origin       sql.NullString `json:"origin"`
 	RoastLevel   sql.NullString `json:"roast_level"`
 	Shop         sql.NullString `json:"shop"`
-	Price        sql.NullInt32  `json:"price"`
+	Price        sql.NullInt64  `json:"price"`
 	PurchasedAt  sql.NullTime   `json:"purchased_at"`
 	TastingNote  sql.NullString `json:"tasting_note"`
 	BrewMethod   sql.NullString `json:"brew_method"`

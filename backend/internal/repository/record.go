@@ -33,7 +33,7 @@ func (r *RecordRepository) ListByRoastLevel(ctx context.Context, userID int64, r
 	})
 }
 
-func (r *RecordRepository) ListByRatingMin(ctx context.Context, userID int64, ratingMin int8) ([]sqlcgen.Record, error) {
+func (r *RecordRepository) ListByRatingMin(ctx context.Context, userID int64, ratingMin int64) ([]sqlcgen.Record, error) {
 	return r.q.ListRecordsByRatingMin(ctx, sqlcgen.ListRecordsByRatingMinParams{
 		UserID: userID,
 		Rating: ratingMin,

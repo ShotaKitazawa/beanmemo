@@ -1,6 +1,6 @@
 version: "2"
 sql:
-  - engine: "mysql"
+  - engine: "sqlite"
     queries: "queries/"
     schema: "schema.sql"
     gen:
@@ -16,3 +16,22 @@ sql:
         emit_result_struct_pointers: false
         emit_params_struct_pointers: false
         emit_methods_with_db_argument: false
+        overrides:
+          - db_type: "datetime"
+            go_type:
+              import: "time"
+              type: "Time"
+          - db_type: "boolean"
+            go_type: "bool"
+          - db_type: "tinyint"
+            go_type: "int8"
+          - db_type: "date"
+            nullable: true
+            go_type:
+              import: "database/sql"
+              type: "NullTime"
+          - db_type: "int"
+            nullable: true
+            go_type:
+              import: "database/sql"
+              type: "NullInt32"

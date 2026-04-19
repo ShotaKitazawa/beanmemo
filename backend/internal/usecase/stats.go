@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"sort"
 	"strings"
 	"unicode"
@@ -18,8 +17,8 @@ type statsRepository interface {
 	StatsByOrigin(ctx context.Context, userID int64) ([]sqlcgen.StatsByOriginRow, error)
 	StatsByRoastLevel(ctx context.Context, userID int64) ([]sqlcgen.StatsByRoastLevelRow, error)
 	StatsByBrewMethod(ctx context.Context, userID int64) ([]sqlcgen.StatsByBrewMethodRow, error)
-	AvgRatingByOrigin(ctx context.Context, userID int64, origin string) (interface{}, error)
-	AvgRatingByName(ctx context.Context, userID int64, name string) (interface{}, error)
+	AvgRatingByOrigin(ctx context.Context, userID int64, origin string) (sql.NullFloat64, error)
+	AvgRatingByName(ctx context.Context, userID int64, name string) (sql.NullFloat64, error)
 }
 
 type statsRecordRepository interface {
@@ -174,7 +173,7 @@ func (u *StatsUsecase) Recommend(ctx context.Context, userID int64, params api.G
 	var scores []float32
 	if params.Origin.Set && params.Origin.Value != "" {
 		avg, err := u.statsRepo.AvgRatingByOrigin(ctx, userID, params.Origin.Value)
-		if err == nil && avg != nil {
+		if err == nil && avg.Valid {
 			v := toFloat32(avg)
 			result.OriginAvg = api.OptNilFloat32{Set: true, Value: v}
 			scores = append(scores, v)
@@ -182,7 +181,7 @@ func (u *StatsUsecase) Recommend(ctx context.Context, userID int64, params api.G
 	}
 	if params.Name.Set && params.Name.Value != "" {
 		avg, err := u.statsRepo.AvgRatingByName(ctx, userID, params.Name.Value)
-		if err == nil && avg != nil {
+		if err == nil && avg.Valid {
 			v := toFloat32(avg)
 			result.NameMatchAvg = api.OptNilFloat32{Set: true, Value: v}
 			scores = append(scores, v)
@@ -218,23 +217,9 @@ func tokenize(text string) []string {
 	return result
 }
 
-func toFloat32(v interface{}) float32 {
-	if v == nil {
+func toFloat32(v sql.NullFloat64) float32 {
+	if !v.Valid {
 		return 0
 	}
-	switch t := v.(type) {
-	case float64:
-		return float32(t)
-	case float32:
-		return t
-	case []byte:
-		var f float64
-		_, _ = fmt.Sscanf(string(t), "%f", &f)
-		return float32(f)
-	default:
-		s := fmt.Sprintf("%v", v)
-		var f float64
-		_, _ = fmt.Sscanf(s, "%f", &f)
-		return float32(f)
-	}
+	return float32(v.Float64)
 }

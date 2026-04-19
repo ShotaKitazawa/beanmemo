@@ -11,7 +11,7 @@ import (
 )
 
 const ensureDefaultUser = `-- name: EnsureDefaultUser :exec
-INSERT IGNORE INTO users (id, name, email, password_hash)
+INSERT OR IGNORE INTO users (id, name, email, password_hash)
 VALUES (1, 'default', 'default@beanmemo.local', 'n/a')
 `
 
@@ -59,7 +59,7 @@ func (q *Queries) GetUserBySub(ctx context.Context, sub sql.NullString) (User, e
 const upsertUserBySub = `-- name: UpsertUserBySub :exec
 INSERT INTO users (sub, name, email, password_hash)
 VALUES (?, ?, '', 'n/a')
-ON DUPLICATE KEY UPDATE name = VALUES(name)
+ON CONFLICT(sub) DO UPDATE SET name = excluded.name
 `
 
 type UpsertUserBySubParams struct {

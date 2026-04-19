@@ -13,11 +13,11 @@ type Record struct {
 	ID           int64          `json:"id"`
 	UserID       int64          `json:"user_id"`
 	Name         string         `json:"name"`
-	Rating       int8           `json:"rating"`
+	Rating       int64          `json:"rating"`
 	Origin       sql.NullString `json:"origin"`
 	RoastLevel   sql.NullString `json:"roast_level"`
 	Shop         sql.NullString `json:"shop"`
-	Price        sql.NullInt32  `json:"price"`
+	Price        sql.NullInt64  `json:"price"`
 	PurchasedAt  sql.NullTime   `json:"purchased_at"`
 	TastingNote  sql.NullString `json:"tasting_note"`
 	BrewMethod   sql.NullString `json:"brew_method"`

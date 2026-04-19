@@ -14,7 +14,7 @@ type Config struct {
 func Load() Config {
 	dsn := os.Getenv("DSN")
 	if dsn == "" {
-		dsn = "beanmemo:beanmemo@tcp(localhost:3306)/beanmemo?parseTime=true"
+		dsn = "beanmemo.db"
 	}
 	port := os.Getenv("PORT")
 	if port == "" {

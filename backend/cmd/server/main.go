@@ -105,7 +105,7 @@ func run() error {
 func ensureDefaultUser(db *sql.DB) error {
 	ctx := context.Background()
 	_, err := db.ExecContext(ctx,
-		`INSERT IGNORE INTO users (id, name, email, password_hash) VALUES (1, 'default', 'default@beanmemo.local', 'n/a')`,
+		`INSERT OR IGNORE INTO users (id, name, email, password_hash) VALUES (1, 'default', 'default@beanmemo.local', 'n/a')`,
 	)
 	return err
 }

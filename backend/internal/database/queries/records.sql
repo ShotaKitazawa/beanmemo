@@ -40,7 +40,7 @@ UPDATE records SET
   brew_method   = ?,
   recipe        = ?,
   is_note_filled = ?,
-  updated_at    = NOW()
+  updated_at    = CURRENT_TIMESTAMP
 WHERE id = ? AND user_id = ?;
 
 -- name: DeleteRecord :exec

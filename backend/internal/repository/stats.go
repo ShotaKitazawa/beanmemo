@@ -27,14 +27,14 @@ func (r *StatsRepository) StatsByBrewMethod(ctx context.Context, userID int64) (
 	return r.q.StatsByBrewMethod(ctx, userID)
 }
 
-func (r *StatsRepository) AvgRatingByOrigin(ctx context.Context, userID int64, origin string) (interface{}, error) {
+func (r *StatsRepository) AvgRatingByOrigin(ctx context.Context, userID int64, origin string) (sql.NullFloat64, error) {
 	return r.q.AvgRatingByOrigin(ctx, sqlcgen.AvgRatingByOriginParams{
 		UserID: userID,
 		Origin: sql.NullString{String: origin, Valid: true},
 	})
 }
 
-func (r *StatsRepository) AvgRatingByName(ctx context.Context, userID int64, name string) (interface{}, error) {
+func (r *StatsRepository) AvgRatingByName(ctx context.Context, userID int64, name string) (sql.NullFloat64, error) {
 	return r.q.AvgRatingByName(ctx, sqlcgen.AvgRatingByNameParams{
 		UserID: userID,
 		Name:   name,

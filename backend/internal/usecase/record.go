@@ -14,7 +14,7 @@ type recordRepository interface {
 	ListAll(ctx context.Context, userID int64) ([]sqlcgen.Record, error)
 	ListByOrigin(ctx context.Context, userID int64, origin string) ([]sqlcgen.Record, error)
 	ListByRoastLevel(ctx context.Context, userID int64, roastLevel string) ([]sqlcgen.Record, error)
-	ListByRatingMin(ctx context.Context, userID int64, ratingMin int8) ([]sqlcgen.Record, error)
+	ListByRatingMin(ctx context.Context, userID int64, ratingMin int64) ([]sqlcgen.Record, error)
 	ListByBrewMethod(ctx context.Context, userID int64, brewMethod string) ([]sqlcgen.Record, error)
 	Get(ctx context.Context, id, userID int64) (sqlcgen.Record, error)
 	GetRelated(ctx context.Context, userID, id int64, name string) ([]sqlcgen.Record, error)
@@ -47,7 +47,7 @@ func (u *RecordUsecase) List(ctx context.Context, userID int64, params api.ListR
 		return filterRecords(records, params), nil
 	}
 	if params.RatingMin.Set {
-		records, err := u.repo.ListByRatingMin(ctx, userID, int8(params.RatingMin.Value))
+		records, err := u.repo.ListByRatingMin(ctx, userID, int64(params.RatingMin.Value))
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +104,7 @@ func (u *RecordUsecase) Create(ctx context.Context, userID int64, req *api.Creat
 	params := sqlcgen.CreateRecordParams{
 		UserID:       userID,
 		Name:         req.Name,
-		Rating:       int8(req.Rating.Or(0)),
+		Rating:       int64(req.Rating.Or(0)),
 		IsNoteFilled: isNoteFilled,
 	}
 	if req.Origin.Set && !req.Origin.Null {
@@ -117,7 +117,7 @@ func (u *RecordUsecase) Create(ctx context.Context, userID int64, req *api.Creat
 		params.Shop = sql.NullString{String: req.Shop.Value, Valid: true}
 	}
 	if req.Price.Set && !req.Price.Null {
-		params.Price = sql.NullInt32{Int32: int32(req.Price.Value), Valid: true}
+		params.Price = sql.NullInt64{Int64: int64(req.Price.Value), Valid: true}
 	}
 	if req.PurchasedAt.Set && !req.PurchasedAt.Null {
 		params.PurchasedAt = sql.NullTime{Time: req.PurchasedAt.Value, Valid: true}
@@ -177,7 +177,7 @@ func applyUpdate(existing sqlcgen.Record, req *api.UpdateRecordRequest) sqlcgen.
 		r.Name = req.Name.Value
 	}
 	if req.Rating.Set {
-		r.Rating = int8(req.Rating.Value)
+		r.Rating = int64(req.Rating.Value)
 	}
 	if req.Origin.Set {
 		if req.Origin.Null {
@@ -202,9 +202,9 @@ func applyUpdate(existing sqlcgen.Record, req *api.UpdateRecordRequest) sqlcgen.
 	}
 	if req.Price.Set {
 		if req.Price.Null {
-			r.Price = sql.NullInt32{}
+			r.Price = sql.NullInt64{}
 		} else {
-			r.Price = sql.NullInt32{Int32: int32(req.Price.Value), Valid: true}
+			r.Price = sql.NullInt64{Int64: int64(req.Price.Value), Valid: true}
 		}
 	}
 	if req.PurchasedAt.Set {

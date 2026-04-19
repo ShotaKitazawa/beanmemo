@@ -19,9 +19,9 @@ type AvgRatingByNameParams struct {
 	Name   string `json:"name"`
 }
 
-func (q *Queries) AvgRatingByName(ctx context.Context, arg AvgRatingByNameParams) (interface{}, error) {
+func (q *Queries) AvgRatingByName(ctx context.Context, arg AvgRatingByNameParams) (sql.NullFloat64, error) {
 	row := q.db.QueryRowContext(ctx, avgRatingByName, arg.UserID, arg.Name)
-	var avg interface{}
+	var avg sql.NullFloat64
 	err := row.Scan(&avg)
 	return avg, err
 }
@@ -35,9 +35,9 @@ type AvgRatingByOriginParams struct {
 	Origin sql.NullString `json:"origin"`
 }
 
-func (q *Queries) AvgRatingByOrigin(ctx context.Context, arg AvgRatingByOriginParams) (interface{}, error) {
+func (q *Queries) AvgRatingByOrigin(ctx context.Context, arg AvgRatingByOriginParams) (sql.NullFloat64, error) {
 	row := q.db.QueryRowContext(ctx, avgRatingByOrigin, arg.UserID, arg.Origin)
-	var avg interface{}
+	var avg sql.NullFloat64
 	err := row.Scan(&avg)
 	return avg, err
 }
@@ -54,9 +54,9 @@ ORDER BY avg_rating DESC
 `
 
 type StatsByBrewMethodRow struct {
-	Label     sql.NullString `json:"label"`
-	Count     int64          `json:"count"`
-	AvgRating interface{}    `json:"avg_rating"`
+	Label     sql.NullString  `json:"label"`
+	Count     int64           `json:"count"`
+	AvgRating sql.NullFloat64 `json:"avg_rating"`
 }
 
 func (q *Queries) StatsByBrewMethod(ctx context.Context, userID int64) ([]StatsByBrewMethodRow, error) {
@@ -94,9 +94,9 @@ ORDER BY avg_rating DESC
 `
 
 type StatsByOriginRow struct {
-	Label     sql.NullString `json:"label"`
-	Count     int64          `json:"count"`
-	AvgRating interface{}    `json:"avg_rating"`
+	Label     sql.NullString  `json:"label"`
+	Count     int64           `json:"count"`
+	AvgRating sql.NullFloat64 `json:"avg_rating"`
 }
 
 func (q *Queries) StatsByOrigin(ctx context.Context, userID int64) ([]StatsByOriginRow, error) {
@@ -134,9 +134,9 @@ ORDER BY avg_rating DESC
 `
 
 type StatsByRoastLevelRow struct {
-	Label     sql.NullString `json:"label"`
-	Count     int64          `json:"count"`
-	AvgRating interface{}    `json:"avg_rating"`
+	Label     sql.NullString  `json:"label"`
+	Count     int64           `json:"count"`
+	AvgRating sql.NullFloat64 `json:"avg_rating"`
 }
 
 func (q *Queries) StatsByRoastLevel(ctx context.Context, userID int64) ([]StatsByRoastLevelRow, error) {
