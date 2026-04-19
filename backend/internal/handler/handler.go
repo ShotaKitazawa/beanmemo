@@ -17,26 +17,51 @@ type UserinfoProvider interface {
 	FetchUserinfo(ctx context.Context, accessToken string) (auth.UserinfoResult, error)
 }
 
+// OIDCConfig holds OIDC settings served to the frontend via GET /oidc-config.
+type OIDCConfig struct {
+	Enabled  bool
+	Issuer   string
+	ClientID string
+	Audience string
+}
+
 type Handler struct {
 	recordUsecase    *usecase.RecordUsecase
 	statsUsecase     *usecase.StatsUsecase
 	userinfoProvider UserinfoProvider
+	oidcConfig       OIDCConfig
 }
 
-func New(recordUsecase *usecase.RecordUsecase, statsUsecase *usecase.StatsUsecase, userinfoProvider UserinfoProvider) *Handler {
+func New(recordUsecase *usecase.RecordUsecase, statsUsecase *usecase.StatsUsecase, userinfoProvider UserinfoProvider, oidcConfig OIDCConfig) *Handler {
 	return &Handler{
 		recordUsecase:    recordUsecase,
 		statsUsecase:     statsUsecase,
 		userinfoProvider: userinfoProvider,
+		oidcConfig:       oidcConfig,
 	}
 }
 
+func (h *Handler) GetOidcConfig(_ context.Context) (*api.OIDCConfigResponse, error) {
+	resp := &api.OIDCConfigResponse{Enabled: h.oidcConfig.Enabled}
+	if h.oidcConfig.Enabled {
+		resp.Issuer = api.NewOptNilString(h.oidcConfig.Issuer)
+		resp.ClientID = api.NewOptNilString(h.oidcConfig.ClientID)
+		resp.Audience = api.NewOptNilString(h.oidcConfig.Audience)
+	} else {
+		resp.Issuer = api.OptNilString{Set: true, Null: true}
+		resp.ClientID = api.OptNilString{Set: true, Null: true}
+		resp.Audience = api.OptNilString{Set: true, Null: true}
+	}
+	return resp, nil
+}
+
 func (h *Handler) GetUserinfo(ctx context.Context) (api.GetUserinfoRes, error) {
-	_, ok := auth.UserIDFromContext(ctx)
-	if !ok {
+	// /userinfo has security:[] so the ogen security handler does not run.
+	// The Bearer token is extracted by authTokenMiddleware in main and stored in context.
+	token, hasToken := auth.TokenFromContext(ctx)
+	if h.oidcConfig.Enabled && !hasToken {
 		return &api.GetUserinfoUnauthorized{Message: "unauthorized"}, nil
 	}
-	token, _ := auth.TokenFromContext(ctx)
 	result, err := h.userinfoProvider.FetchUserinfo(ctx, token)
 	if err != nil {
 		return &api.GetUserinfoInternalServerError{Message: err.Error()}, nil

@@ -1,12 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { User } from "oidc-client-ts";
-import { oidcDisabled, userManager } from "./oidcConfig";
-import { setTokenProvider } from "../api/client";
+import type { UserManager } from "oidc-client-ts";
+import { loadOIDCSetup } from "../oidc";
+import { apiClient, setTokenProvider } from "../api/client";
 
 interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
-  user: User | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -14,55 +13,66 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(!oidcDisabled);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userManager, setUserManager] = useState<UserManager | null>(null);
 
   useEffect(() => {
-    if (oidcDisabled) {
-      // Dev mode: send a dummy token so the backend's ogen security check passes.
-      // The backend with --disable-oidc accepts any non-empty Bearer token.
-      setTokenProvider(async () => "disabled");
-      return;
+    let cancelled = false;
+
+    async function init() {
+      // 1. Fetch OIDC config from backend and create UserManager if configured.
+      const setup = await loadOIDCSetup();
+      if (cancelled) return;
+
+      setUserManager(setup.userManager);
+
+      // 2. Wire up token provider before calling /userinfo.
+      if (setup.userManager) {
+        const mgr = setup.userManager;
+        setTokenProvider(async () => {
+          const u = await mgr.getUser();
+          return u?.access_token ?? null;
+        });
+
+        // Re-authenticate when the token is refreshed or revoked.
+        const onLoaded = () => void checkAuth();
+        const onUnloaded = () => setIsAuthenticated(false);
+        mgr.events.addUserLoaded(onLoaded);
+        mgr.events.addUserUnloaded(onUnloaded);
+      } else {
+        // OIDC disabled: no token — backend accepts all requests.
+        setTokenProvider(async () => null);
+      }
+
+      // 3. Determine auth state via GET /userinfo (200 = authenticated, 401 = not).
+      await checkAuth();
     }
 
-    const mgr = userManager!;
+    async function checkAuth() {
+      const { data } = await apiClient.GET("/userinfo");
+      if (!cancelled) {
+        setIsAuthenticated(!!data);
+        setIsLoading(false);
+      }
+    }
 
-    // Restore session from storage
-    mgr.getUser().then((u) => {
-      setUser(u);
-      setIsLoading(false);
-    });
-
-    // Provide token to API client
-    setTokenProvider(async () => {
-      const u = await mgr.getUser();
-      return u?.access_token ?? null;
-    });
-
-    const onUserLoaded = (u: User) => setUser(u);
-    const onUserUnloaded = () => setUser(null);
-
-    mgr.events.addUserLoaded(onUserLoaded);
-    mgr.events.addUserUnloaded(onUserUnloaded);
-
+    void init();
     return () => {
-      mgr.events.removeUserLoaded(onUserLoaded);
-      mgr.events.removeUserUnloaded(onUserUnloaded);
+      cancelled = true;
     };
   }, []);
 
   const login = async () => {
-    if (!oidcDisabled) await userManager!.signinRedirect();
+    if (userManager) await userManager.signinRedirect();
   };
 
   const logout = async () => {
-    if (!oidcDisabled) await userManager!.signoutRedirect();
+    if (userManager) await userManager.signoutRedirect();
   };
 
-  const isAuthenticated = oidcDisabled || (user !== null && !user.expired);
-
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

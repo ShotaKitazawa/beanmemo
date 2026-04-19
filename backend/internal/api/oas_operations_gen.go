@@ -8,6 +8,7 @@ type OperationName = string
 const (
 	CreateRecordOperation        OperationName = "CreateRecord"
 	DeleteRecordOperation        OperationName = "DeleteRecord"
+	GetOidcConfigOperation       OperationName = "GetOidcConfig"
 	GetRecommendOperation        OperationName = "GetRecommend"
 	GetRecordOperation           OperationName = "GetRecord"
 	GetStatsFlavorWordsOperation OperationName = "GetStatsFlavorWords"

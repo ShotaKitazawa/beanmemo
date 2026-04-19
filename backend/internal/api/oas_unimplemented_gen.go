@@ -31,6 +31,15 @@ func (UnimplementedHandler) DeleteRecord(ctx context.Context, params DeleteRecor
 	return r, ht.ErrNotImplemented
 }
 
+// GetOidcConfig implements getOidcConfig operation.
+//
+// Get OIDC configuration for the frontend.
+//
+// GET /oidc-config
+func (UnimplementedHandler) GetOidcConfig(ctx context.Context) (r *OIDCConfigResponse, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetRecommend implements getRecommend operation.
 //
 // Get recommendation score for a bean.

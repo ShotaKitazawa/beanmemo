@@ -5,7 +5,9 @@ import "os"
 type Config struct {
 	DSN             string
 	Port            string
-	OIDCIssuerURL   string // OIDC_ISSUER_URL
+	OIDCIssuer      string // OIDC_ISSUER
+	OIDCClientID    string // OIDC_CLIENT_ID
+	OIDCAudience    string // OIDC_AUDIENCE
 	AuthzClaimKey   string // AUTHZ_CLAIM_KEY
 	AuthzClaimValue string // AUTHZ_CLAIM_VALUE
 }
@@ -22,7 +24,9 @@ func Load() Config {
 	return Config{
 		DSN:             dsn,
 		Port:            port,
-		OIDCIssuerURL:   os.Getenv("OIDC_ISSUER_URL"),
+		OIDCIssuer:      os.Getenv("OIDC_ISSUER"),
+		OIDCClientID:    os.Getenv("OIDC_CLIENT_ID"),
+		OIDCAudience:    os.Getenv("OIDC_AUDIENCE"),
 		AuthzClaimKey:   os.Getenv("AUTHZ_CLAIM_KEY"),
 		AuthzClaimValue: os.Getenv("AUTHZ_CLAIM_VALUE"),
 	}

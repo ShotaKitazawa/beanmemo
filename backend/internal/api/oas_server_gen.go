@@ -20,6 +20,12 @@ type Handler interface {
 	//
 	// DELETE /records/{id}
 	DeleteRecord(ctx context.Context, params DeleteRecordParams) (DeleteRecordRes, error)
+	// GetOidcConfig implements getOidcConfig operation.
+	//
+	// Get OIDC configuration for the frontend.
+	//
+	// GET /oidc-config
+	GetOidcConfig(ctx context.Context) (*OIDCConfigResponse, error)
 	// GetRecommend implements getRecommend operation.
 	//
 	// Get recommendation score for a bean.

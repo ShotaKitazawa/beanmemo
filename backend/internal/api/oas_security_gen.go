@@ -40,7 +40,6 @@ var operationRolesBearerAuth = map[string][]string{
 	GetRecordOperation:           []string{},
 	GetStatsFlavorWordsOperation: []string{},
 	GetStatsSummaryOperation:     []string{},
-	GetUserinfoOperation:         []string{},
 	ListRecordsOperation:         []string{},
 	UpdateRecordOperation:        []string{},
 }

@@ -207,10 +207,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /oidc-config:
+    get:
+      operationId: getOidcConfig
+      summary: Get OIDC configuration for the frontend
+      security: []
+      responses:
+        "200":
+          description: OIDC configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OIDCConfigResponse"
+
   /userinfo:
     get:
       operationId: getUserinfo
       summary: Get current user info (proxied from OIDC provider, or dummy in disable-oidc mode)
+      security: []
       responses:
         "200":
           description: User info
@@ -545,6 +559,23 @@ components:
         name_match_avg:
           type: number
           format: float
+          nullable: true
+
+    OIDCConfigResponse:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+        issuer:
+          type: string
+          nullable: true
+        client_id:
+          type: string
+          nullable: true
+        audience:
+          type: string
           nullable: true
 
     UserinfoResponse:

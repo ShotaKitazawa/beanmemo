@@ -520,6 +520,54 @@ type ListRecordsUnauthorized Error
 
 func (*ListRecordsUnauthorized) listRecordsRes() {}
 
+// Ref: #/components/schemas/OIDCConfigResponse
+type OIDCConfigResponse struct {
+	Enabled  bool         `json:"enabled"`
+	Issuer   OptNilString `json:"issuer"`
+	ClientID OptNilString `json:"client_id"`
+	Audience OptNilString `json:"audience"`
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *OIDCConfigResponse) GetEnabled() bool {
+	return s.Enabled
+}
+
+// GetIssuer returns the value of Issuer.
+func (s *OIDCConfigResponse) GetIssuer() OptNilString {
+	return s.Issuer
+}
+
+// GetClientID returns the value of ClientID.
+func (s *OIDCConfigResponse) GetClientID() OptNilString {
+	return s.ClientID
+}
+
+// GetAudience returns the value of Audience.
+func (s *OIDCConfigResponse) GetAudience() OptNilString {
+	return s.Audience
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *OIDCConfigResponse) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+// SetIssuer sets the value of Issuer.
+func (s *OIDCConfigResponse) SetIssuer(val OptNilString) {
+	s.Issuer = val
+}
+
+// SetClientID sets the value of ClientID.
+func (s *OIDCConfigResponse) SetClientID(val OptNilString) {
+	s.ClientID = val
+}
+
+// SetAudience sets the value of Audience.
+func (s *OIDCConfigResponse) SetAudience(val OptNilString) {
+	s.Audience = val
+}
+
 // NewOptInt returns new OptInt with value set to v.
 func NewOptInt(v int) OptInt {
 	return OptInt{

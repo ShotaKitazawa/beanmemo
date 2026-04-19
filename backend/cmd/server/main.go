@@ -9,6 +9,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/api"
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/auth"
@@ -49,10 +50,10 @@ func run() error {
 			return fmt.Errorf("seed default user: %w", err)
 		}
 	} else {
-		if cfg.OIDCIssuerURL == "" {
-			return fmt.Errorf("OIDC_ISSUER_URL is required when --disable-oidc is not set")
+		if cfg.OIDCIssuer == "" {
+			return fmt.Errorf("OIDC_ISSUER is required when --disable-oidc is not set")
 		}
-		verifier, err = auth.NewJWTVerifier(context.Background(), cfg.OIDCIssuerURL, cfg.AuthzClaimKey, cfg.AuthzClaimValue)
+		verifier, err = auth.NewJWTVerifier(context.Background(), cfg.OIDCIssuer, cfg.AuthzClaimKey, cfg.AuthzClaimValue)
 		if err != nil {
 			return fmt.Errorf("init JWT verifier: %w", err)
 		}
@@ -70,7 +71,13 @@ func run() error {
 		userinfoProvider = verifier
 	}
 
-	h := handler.New(recordUC, statsUC, userinfoProvider)
+	oidcCfg := handler.OIDCConfig{
+		Enabled:  !*disableOIDC,
+		Issuer:   cfg.OIDCIssuer,
+		ClientID: cfg.OIDCClientID,
+		Audience: cfg.OIDCAudience,
+	}
+	h := handler.New(recordUC, statsUC, userinfoProvider, oidcCfg)
 
 	srv, err := api.NewServer(h, secHandler)
 	if err != nil {
@@ -83,7 +90,7 @@ func run() error {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/api/", http.StripPrefix("/api", srv))
+	mux.Handle("/api/", http.StripPrefix("/api", authTokenMiddleware(srv)))
 	mux.Handle("/", spaHandler(http.FS(staticFS)))
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
@@ -100,6 +107,19 @@ func ensureDefaultUser(db *sql.DB) error {
 		`INSERT IGNORE INTO users (id, name, email, password_hash) VALUES (1, 'default', 'default@beanmemo.local', 'n/a')`,
 	)
 	return err
+}
+
+// authTokenMiddleware extracts a Bearer token from the Authorization header and
+// stores it in the request context. This allows security:[] endpoints (e.g.
+// /userinfo) to read the token even though ogen skips the security handler.
+func authTokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
+			token := strings.TrimPrefix(h, "Bearer ")
+			r = r.WithContext(auth.WithToken(r.Context(), token))
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func spaHandler(fileSystem http.FileSystem) http.Handler {

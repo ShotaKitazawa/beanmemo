@@ -41,6 +41,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/oidc-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get OIDC configuration for the frontend */
+        get: operations["getOidcConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/userinfo": {
         parameters: {
             query?: never;
@@ -199,6 +216,12 @@ export interface components {
             origin_avg?: number | null;
             /** Format: float */
             name_match_avg?: number | null;
+        };
+        OIDCConfigResponse: {
+            enabled: boolean;
+            issuer?: string | null;
+            client_id?: string | null;
+            audience?: string | null;
         };
         UserinfoResponse: {
             sub: string;
@@ -466,6 +489,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getOidcConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OIDC configuration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OIDCConfigResponse"];
                 };
             };
         };

@@ -15,6 +15,8 @@ Page-level components and custom hooks are kept separate. All API communication 
 
 All commands (tests, code generation, linting, builds, etc.) must be run via `mise run <task>`. Available tasks are defined in `mise.toml`. Never invoke `go test`, `pnpm test`, or other tool-specific commands directly — always use the corresponding `mise run` task.
 
+All `mise run` tasks may be executed automatically without asking for human confirmation. This includes lint, format, test, generate, build, and pre-merge tasks.
+
 ### Exception: commands that modify dependency manifests
 
 The following commands modify `package.json` and must **never** be run as mise tasks or invoked automatically. Run them manually with explicit human intent only:

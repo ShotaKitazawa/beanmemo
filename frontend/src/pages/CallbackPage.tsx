@@ -1,18 +1,19 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { userManager } from "../auth/oidcConfig";
+import { loadOIDCSetup } from "../oidc";
 
 export function CallbackPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!userManager) {
-      navigate("/", { replace: true });
-      return;
-    }
-    userManager
-      .signinRedirectCallback()
-      .then(() => navigate("/", { replace: true }))
+    loadOIDCSetup()
+      .then(({ userManager }) => {
+        if (!userManager) {
+          navigate("/", { replace: true });
+          return;
+        }
+        return userManager.signinRedirectCallback().then(() => navigate("/", { replace: true }));
+      })
       .catch((err) => {
         console.error("OIDC callback error:", err);
         navigate("/login", { replace: true });
