@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/api"
 	"github.com/ShotaKitazawa/beanmemo/backend/internal/auth"
@@ -15,18 +16,25 @@ type userRepository interface {
 	GetBySub(ctx context.Context, sub string) (int64, error)
 }
 
-// SecurityHandler implements api.SecurityHandler for bearer JWT authentication.
-type SecurityHandler struct {
-	verifier    *auth.JWTVerifier
-	userRepo    userRepository
-	disableOIDC bool
+// tokenVerifier verifies a JWT string and returns the claims.
+type tokenVerifier interface {
+	Verify(ctx context.Context, tokenString string) (auth.Claims, error)
 }
 
-func NewSecurityHandler(verifier *auth.JWTVerifier, userRepo userRepository, disableOIDC bool) *SecurityHandler {
+// SecurityHandler implements api.SecurityHandler for bearer JWT authentication.
+type SecurityHandler struct {
+	verifier    tokenVerifier
+	userRepo    userRepository
+	disableOIDC bool
+	allowedSubs []string
+}
+
+func NewSecurityHandler(verifier tokenVerifier, userRepo userRepository, disableOIDC bool, allowedSubs []string) *SecurityHandler {
 	return &SecurityHandler{
 		verifier:    verifier,
 		userRepo:    userRepo,
 		disableOIDC: disableOIDC,
+		allowedSubs: allowedSubs,
 	}
 }
 
@@ -40,6 +48,10 @@ func (s *SecurityHandler) HandleBearerAuth(ctx context.Context, _ api.OperationN
 	claims, err := s.verifier.Verify(ctx, t.Token)
 	if err != nil {
 		return ctx, fmt.Errorf("unauthorized: %w", err)
+	}
+
+	if len(s.allowedSubs) > 0 && !slices.Contains(s.allowedSubs, claims.Sub) {
+		return ctx, fmt.Errorf("unauthorized: sub %q is not in OIDC_ALLOWED_SUBS", claims.Sub)
 	}
 
 	if err := s.userRepo.UpsertBySub(ctx, claims.Sub, claims.Sub); err != nil {

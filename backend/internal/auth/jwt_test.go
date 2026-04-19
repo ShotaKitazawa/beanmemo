@@ -18,7 +18,7 @@ import (
 )
 
 // setupTestServer creates a mock OIDC server and returns a JWTVerifier along with the private key.
-func setupTestServer(t *testing.T, claimKey, claimValue string) (*auth.JWTVerifier, *rsa.PrivateKey, *httptest.Server) {
+func setupTestServer(t *testing.T) (*auth.JWTVerifier, *rsa.PrivateKey, *httptest.Server) {
 	t.Helper()
 
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -73,7 +73,7 @@ func setupTestServer(t *testing.T, claimKey, claimValue string) (*auth.JWTVerifi
 	}))
 	srvURL = srv.URL
 
-	verifier, err := auth.NewJWTVerifier(context.Background(), srv.URL, claimKey, claimValue)
+	verifier, err := auth.NewJWTVerifier(context.Background(), srv.URL)
 	if err != nil {
 		srv.Close()
 		t.Fatalf("create JWTVerifier: %v", err)
@@ -120,7 +120,7 @@ func buildToken(t *testing.T, privateKey *rsa.PrivateKey, issuer, sub string, ex
 }
 
 func TestJWTVerifier_ValidToken(t *testing.T) {
-	verifier, key, srv := setupTestServer(t, "", "")
+	verifier, key, srv := setupTestServer(t)
 	defer srv.Close()
 
 	tokenStr := buildToken(t, key, srv.URL, "user|123", nil)
@@ -135,10 +135,9 @@ func TestJWTVerifier_ValidToken(t *testing.T) {
 }
 
 func TestJWTVerifier_InvalidSignature(t *testing.T) {
-	verifier, _, srv := setupTestServer(t, "", "")
+	verifier, _, srv := setupTestServer(t)
 	defer srv.Close()
 
-	// Sign with a different key
 	otherKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)
@@ -151,59 +150,8 @@ func TestJWTVerifier_InvalidSignature(t *testing.T) {
 	}
 }
 
-func TestJWTVerifier_ClaimCheck_StringMatch(t *testing.T) {
-	verifier, key, srv := setupTestServer(t, "role", "user")
-	defer srv.Close()
-
-	tokenStr := buildToken(t, key, srv.URL, "user|789", map[string]any{"role": "user"})
-
-	claims, err := verifier.Verify(context.Background(), tokenStr)
-	if err != nil {
-		t.Fatalf("expected valid token with claim, got: %v", err)
-	}
-	if claims.Sub != "user|789" {
-		t.Errorf("expected sub 'user|789', got %q", claims.Sub)
-	}
-}
-
-func TestJWTVerifier_ClaimCheck_ArrayContains(t *testing.T) {
-	verifier, key, srv := setupTestServer(t, "roles", "user")
-	defer srv.Close()
-
-	tokenStr := buildToken(t, key, srv.URL, "user|101", map[string]any{"roles": []string{"admin", "user"}})
-
-	_, err := verifier.Verify(context.Background(), tokenStr)
-	if err != nil {
-		t.Fatalf("expected valid token when array contains value, got: %v", err)
-	}
-}
-
-func TestJWTVerifier_ClaimCheck_Missing(t *testing.T) {
-	verifier, key, srv := setupTestServer(t, "role", "user")
-	defer srv.Close()
-
-	tokenStr := buildToken(t, key, srv.URL, "user|999", nil)
-
-	_, err := verifier.Verify(context.Background(), tokenStr)
-	if err == nil {
-		t.Fatal("expected error when required claim is missing")
-	}
-}
-
-func TestJWTVerifier_ClaimCheck_WrongValue(t *testing.T) {
-	verifier, key, srv := setupTestServer(t, "role", "user")
-	defer srv.Close()
-
-	tokenStr := buildToken(t, key, srv.URL, "user|000", map[string]any{"role": "guest"})
-
-	_, err := verifier.Verify(context.Background(), tokenStr)
-	if err == nil {
-		t.Fatal("expected error when claim value does not match")
-	}
-}
-
 func TestJWTVerifier_FetchUserinfo_Success(t *testing.T) {
-	verifier, key, srv := setupTestServer(t, "", "")
+	verifier, key, srv := setupTestServer(t)
 	defer srv.Close()
 
 	tokenStr := buildToken(t, key, srv.URL, "user|123", nil)
@@ -224,7 +172,7 @@ func TestJWTVerifier_FetchUserinfo_Success(t *testing.T) {
 }
 
 func TestJWTVerifier_ExpiredToken(t *testing.T) {
-	verifier, key, srv := setupTestServer(t, "", "")
+	verifier, key, srv := setupTestServer(t)
 	defer srv.Close()
 
 	privKey, err := jwk.FromRaw(key)

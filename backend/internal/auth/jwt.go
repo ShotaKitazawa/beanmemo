@@ -27,9 +27,6 @@ type UserinfoResult struct {
 
 // JWTVerifier validates JWT tokens using OIDC JWKS.
 type JWTVerifier struct {
-	issuerURL        string
-	claimKey         string
-	claimValue       string
 	jwksCache        *jwk.Cache
 	jwksURI          string
 	userinfoEndpoint string
@@ -43,7 +40,7 @@ type oidcDiscovery struct {
 
 // NewJWTVerifier creates a JWTVerifier by fetching the OIDC discovery document
 // and setting up a JWKS cache.
-func NewJWTVerifier(ctx context.Context, issuerURL, claimKey, claimValue string) (*JWTVerifier, error) {
+func NewJWTVerifier(ctx context.Context, issuerURL string) (*JWTVerifier, error) {
 	discoveryURL := strings.TrimRight(issuerURL, "/") + "/.well-known/openid-configuration"
 	resp, err := http.Get(discoveryURL) //nolint:noctx
 	if err != nil {
@@ -65,9 +62,6 @@ func NewJWTVerifier(ctx context.Context, issuerURL, claimKey, claimValue string)
 	}
 
 	return &JWTVerifier{
-		issuerURL:        issuerURL,
-		claimKey:         claimKey,
-		claimValue:       claimValue,
 		jwksCache:        cache,
 		jwksURI:          disc.JWKSURI,
 		userinfoEndpoint: disc.UserinfoEndpoint,
@@ -125,37 +119,5 @@ func (v *JWTVerifier) Verify(ctx context.Context, tokenString string) (Claims, e
 		return Claims{}, fmt.Errorf("parse token: %w", err)
 	}
 
-	if v.claimKey != "" && v.claimValue != "" {
-		if !hasClaimValue(token, v.claimKey, v.claimValue) {
-			return Claims{}, fmt.Errorf("missing required claim %q=%q", v.claimKey, v.claimValue)
-		}
-	}
-
 	return Claims{Sub: token.Subject()}, nil
-}
-
-// hasClaimValue checks whether the JWT token contains a claim that matches the expected value.
-// The claim can be a string or an array of strings.
-func hasClaimValue(token jwt.Token, key, expected string) bool {
-	val, ok := token.Get(key)
-	if !ok {
-		return false
-	}
-	switch v := val.(type) {
-	case string:
-		return v == expected
-	case []any:
-		for _, item := range v {
-			if s, ok := item.(string); ok && s == expected {
-				return true
-			}
-		}
-	case []string:
-		for _, s := range v {
-			if s == expected {
-				return true
-			}
-		}
-	}
-	return false
 }

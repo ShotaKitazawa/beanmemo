@@ -53,13 +53,14 @@ func run() error {
 		if cfg.OIDCIssuer == "" {
 			return fmt.Errorf("OIDC_ISSUER is required when --disable-oidc is not set")
 		}
-		verifier, err = auth.NewJWTVerifier(context.Background(), cfg.OIDCIssuer, cfg.AuthzClaimKey, cfg.AuthzClaimValue)
+		verifier, err = auth.NewJWTVerifier(context.Background(), cfg.OIDCIssuer)
 		if err != nil {
 			return fmt.Errorf("init JWT verifier: %w", err)
 		}
 	}
 
-	secHandler := handler.NewSecurityHandler(verifier, userRepo, *disableOIDC)
+	allowedSubs := parseCommaSeparated(cfg.OIDCAllowedSubs)
+	secHandler := handler.NewSecurityHandler(verifier, userRepo, *disableOIDC, allowedSubs)
 
 	recordUC := usecase.NewRecordUsecase(recordRepo)
 	statsUC := usecase.NewStatsUsecase(statsRepo, recordRepo)
@@ -107,6 +108,22 @@ func ensureDefaultUser(db *sql.DB) error {
 		`INSERT IGNORE INTO users (id, name, email, password_hash) VALUES (1, 'default', 'default@beanmemo.local', 'n/a')`,
 	)
 	return err
+}
+
+// parseCommaSeparated splits a comma-separated string into a trimmed slice,
+// returning nil when the input is empty.
+func parseCommaSeparated(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 // authTokenMiddleware extracts a Bearer token from the Authorization header and

@@ -8,8 +8,7 @@ type Config struct {
 	OIDCIssuer      string // OIDC_ISSUER
 	OIDCClientID    string // OIDC_CLIENT_ID
 	OIDCAudience    string // OIDC_AUDIENCE
-	AuthzClaimKey   string // AUTHZ_CLAIM_KEY
-	AuthzClaimValue string // AUTHZ_CLAIM_VALUE
+	OIDCAllowedSubs string // OIDC_ALLOWED_SUBS (comma-separated)
 }
 
 func Load() Config {
@@ -27,7 +26,6 @@ func Load() Config {
 		OIDCIssuer:      os.Getenv("OIDC_ISSUER"),
 		OIDCClientID:    os.Getenv("OIDC_CLIENT_ID"),
 		OIDCAudience:    os.Getenv("OIDC_AUDIENCE"),
-		AuthzClaimKey:   os.Getenv("AUTHZ_CLAIM_KEY"),
-		AuthzClaimValue: os.Getenv("AUTHZ_CLAIM_VALUE"),
+		OIDCAllowedSubs: os.Getenv("OIDC_ALLOWED_SUBS"),
 	}
 }
